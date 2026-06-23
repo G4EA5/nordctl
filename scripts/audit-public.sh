@@ -51,7 +51,11 @@ SEARCH_PATHS=(
 )
 
 for pat in "${PATTERNS[@]}"; do
-  hits=$(rg -i -n "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | rg -v 'audit-public\.sh|PUBLISH_CHECKLIST\.md' || true)
+  if command -v rg >/dev/null 2>&1; then
+    hits=$(rg -i -n "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | rg -v 'audit-public\.sh|PUBLISH_CHECKLIST\.md' || true)
+  else
+    hits=$(grep -RIn -i -E "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | grep -v 'audit-public\.sh\|PUBLISH_CHECKLIST\.md' || true)
+  fi
   if [[ -n "$hits" ]]; then
     echo "$hits"
     red "pattern /${pat}/i matched (see above)"
@@ -59,7 +63,13 @@ for pat in "${PATTERNS[@]}"; do
 done
 
 # Real-looking public IPs in demo code should use RFC 5737 documentation ranges only
-if rg -n '89\.187\.|185\.230\.|103\.86\.96\.100' nordctl/demo_mode.py 2>/dev/null; then
+if command -v rg >/dev/null 2>&1; then
+  demo_hits=$(rg -n '89\.187\.|185\.230\.|103\.86\.96\.100' nordctl/demo_mode.py 2>/dev/null || true)
+else
+  demo_hits=$(grep -n -E '89\.187\.|185\.230\.|103\.86\.96\.100' nordctl/demo_mode.py 2>/dev/null || true)
+fi
+if [[ -n "$demo_hits" ]]; then
+  echo "$demo_hits"
   red "demo_mode.py uses non-documentation IPs (use 203.0.113.x / 198.51.100.x)"
 fi
 

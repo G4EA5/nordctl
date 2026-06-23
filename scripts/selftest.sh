@@ -4,6 +4,11 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+if [[ -z "${NORDCTL_CONFIG_DIR:-}" && ( -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ) ]]; then
+  export NORDCTL_CONFIG_DIR="${RUNNER_TEMP:-/tmp}/nordctl-selftest-config"
+  rm -rf "$NORDCTL_CONFIG_DIR"
+  mkdir -p "$NORDCTL_CONFIG_DIR"
+fi
 if [[ -z "${PY:-}" ]]; then
   if [[ -x "$ROOT/.venv/bin/python" ]]; then
     PY="$ROOT/.venv/bin/python"
@@ -23,13 +28,21 @@ nordctl_cli() {
   fi
 }
 PORT="${PORT:-8778}"
-FAIL=0
+ST_FAIL=0
 
-red() { echo -e "\033[0;31mFAIL\033[0m $*"; FAIL=1; }
-grn() { echo -e "\033[0;32mOK\033[0m $*"; }
+red() { echo -e "\033[0;31mFAILED\033[0m $*" >&2; ST_FAIL=1; }
+grn() { echo -e "\033[0;32mOK\033[0m $*" >&2; }
 
 run() {
   if "$@"; then grn "$*"; else red "$*"; fi
+}
+
+run_nordctl() {
+  if nordctl_cli "$@" >/dev/null 2>&1; then
+    grn "nordctl $*"
+  else
+    red "nordctl $*"
+  fi
 }
 
 echo "=== nordctl self-test ==="
@@ -154,13 +167,13 @@ run "$PY" -c "from nordctl.scan_alerts import identify_scan, parse_scan_result, 
 run "$PY" -c "from nordctl.terminal import quick_commands, _nord_quick_commands, _security_quick_commands; from nordctl.paths import install_script_path, PRIV_SUDOERS_SCRIPT, resolve_nordctl_bin; n=quick_commands(scope='nord'); w=quick_commands(scope='network'); s=quick_commands(scope='security'); assert n['scope']=='nord' and w['scope']=='network' and s['scope']=='security'; nord_raw=_nord_quick_commands(resolve_nordctl_bin()); assert any('login' in c['cmd'] for c in nord_raw); assert not any('nordvpn login' in c['cmd'] for c in w['commands']); sec_raw=_security_quick_commands(resolve_nordctl_bin(), install_script_path(PRIV_SUDOERS_SCRIPT)); assert any('lynis' in c['cmd'].lower() for c in sec_raw); assert not any('lynis' in c['cmd'].lower() for c in w['commands'])"
 run "$PY" -c "from nordctl.activity_log import _CATEGORIES, clear_entries, list_entries, record_event, _legacy_category_match; assert 'scan' in _CATEGORIES and 'install' in _CATEGORIES and 'terminal' in _CATEGORIES; clear_entries(); record_event('scan', 'Lynis audit'); record_event('install', 'Installed tcpdump'); assert list_entries(category='scan'); assert _legacy_category_match({'category':'security','title':'Lynis audit failed'}, 'scan')"
 
-run nordctl_cli service status >/dev/null
-run nordctl_cli traffic --filter internet >/dev/null
-run nordctl_cli logs -n 5 >/dev/null
-run nordctl_cli security >/dev/null
-run nordctl_cli wifi status >/dev/null
-run nordctl_cli wifi doctor >/dev/null
-run nordctl_cli onboard --all --non-interactive >/dev/null
+run_nordctl service status
+run_nordctl traffic --filter internet
+run_nordctl logs -n 5
+run_nordctl security
+run_nordctl wifi status
+run_nordctl wifi doctor
+run_nordctl onboard --all --non-interactive
 
 # Static assets reference check
 run "$PY" scripts/check_static_ui.py
@@ -180,9 +193,18 @@ print('speedtest global mirrors ok')
 "
 
 # API smoke (temp server)
+if command -v fuser >/dev/null 2>&1; then
+  fuser -k "${PORT}/tcp" 2>/dev/null || true
+  sleep 0.3
+fi
 nordctl_cli serve --port "$PORT" &
 SPID=$!
-sleep 1.2
+for _ in $(seq 1 40); do
+  if curl -sf "http://127.0.0.1:${PORT}/api/state/quick" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
 cleanup() { kill "$SPID" 2>/dev/null || true; wait "$SPID" 2>/dev/null || true; }
 trap cleanup EXIT
 
@@ -293,8 +315,8 @@ bash -n scripts/install-ufw-sudoers.sh && grn "install-ufw-sudoers.sh syntax" ||
 bash -n scripts/install-privilege-sudoers.sh && grn "install-privilege-sudoers.sh syntax" || red "install-privilege-sudoers.sh syntax"
 
 echo ""
-if (( FAIL )); then
-  echo "Some checks failed."
+if (( ST_FAIL )); then
+  echo "Some checks failed." >&2
   exit 1
 fi
 echo "All self-tests passed."
