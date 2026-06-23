@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
-      NORDCTL_CONFIG_DIR: ${{ runner.temp }}/nordctl-config
       PORT: "8765"
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +28,10 @@ jobs:
           pip install -e .
 
       - name: Run selftest
-        run: bash scripts/selftest.sh
+        run: |
+          export NORDCTL_CONFIG_DIR="${RUNNER_TEMP}/nordctl-config"
+          mkdir -p "$NORDCTL_CONFIG_DIR"
+          bash scripts/selftest.sh
 
       - name: Verify package builds
         run: pip install build && python -m build
