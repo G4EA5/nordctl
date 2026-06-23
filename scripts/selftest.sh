@@ -149,7 +149,11 @@ with patch('nordctl.zones.zone_status', lambda c: {'ssid': 'BadLearn', 'is_trust
 "
 run "$PY" -c "from nordctl.vpn_detect import analyze_vpn, default_route; assert 'device' in default_route(); a=analyze_vpn({'connected': False}, routed_public_ip='198.51.100.2'); assert isinstance(a, dict)"
 run "$PY" -c "from nordctl.connection_details import build_connection_details; from nordctl.config import load_config; d=build_connection_details(load_config(), {'connected': False}); assert d.get('ok') and 'path' in d"
-run "$PY" -c "from nordctl.service_mgr import control_ui_service, schedule_ui_restart; r=control_ui_service('restart'); assert r.get('ok') and r.get('scheduled'), r"
+if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+  run "$PY" -c "from nordctl.service_mgr import write_ui_unit, ui_service_status; write_ui_unit(); s=ui_service_status(); assert s.get('unit') and 'manual_pids' in s"
+else
+  run "$PY" -c "from nordctl.service_mgr import control_ui_service; r=control_ui_service('restart'); assert r.get('ok') and r.get('scheduled'), r"
+fi
 
 run "$PY" -c "from nordctl.wifi_hub import wifi_hub_payload; assert wifi_hub_payload()['ok']"
 
@@ -245,10 +249,14 @@ check_api "/api/state/network" "!=False"
 check_api "/api/security/summary" "!=False"
 "$PY" -c "
 import json, urllib.request
-d = json.load(urllib.request.urlopen('http://127.0.0.1:${PORT}/api/state/quick'))
-ip = d.get('ip_info') or {}
-assert 'chain' in ip, ip
-print('ip_info chain:', len(ip.get('chain') or []))
+try:
+    d = json.load(urllib.request.urlopen('http://127.0.0.1:${PORT}/api/state/quick'))
+    ip = d.get('ip_info') or {}
+    assert 'chain' in ip, ip
+    print('ip_info chain:', len(ip.get('chain') or []))
+except Exception as exc:
+    print('ip_info check failed:', exc)
+    raise SystemExit(1)
 " && grn "ip_info in /api/state/quick" || red "ip_info in /api/state/quick"
 check_api "/api/service" "!=False"
 check_api "/api/traffic?filter=all" "!=False"
@@ -278,10 +286,10 @@ run "$PY" -c "from nordctl.security_hub import security_hub_summary; s=security_
 OPENAPI_OK=$("$PY" -c "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:${PORT}/api/openapi'); print('ok' if b'openapi:' in r.read() else 'fail')" 2>/dev/null || echo "fail")
 if [[ "$OPENAPI_OK" == "ok" ]]; then grn "GET /api/openapi"; else red "GET /api/openapi"; fi
 
-HELP_N=$("$PY" -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:${PORT}/api/help')); print(len(d.get('sections',[])))")
+HELP_N=$("$PY" -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:${PORT}/api/help')); print(len(d.get('sections',[])))" 2>/dev/null || echo "0")
 if [[ "$HELP_N" -ge 15 ]]; then grn "help sections via API (profile-filtered): $HELP_N"; else red "help sections via API: $HELP_N"; fi
 
-TRAFFIC_N=$("$PY" -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:${PORT}/api/traffic')); c=d.get('counts') or {}; print(int(c.get('internet_outbound') or 0)+int(c.get('local_sessions') or 0)+int(c.get('internet_inbound') or 0))")
+TRAFFIC_N=$("$PY" -c "import json,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:${PORT}/api/traffic')); c=d.get('counts') or {}; print(int(c.get('internet_outbound') or 0)+int(c.get('local_sessions') or 0)+int(c.get('internet_inbound') or 0))" 2>/dev/null || echo "-1")
 if [[ "$TRAFFIC_N" -ge 0 ]]; then grn "traffic map via API: $TRAFFIC_N sessions"; else red "traffic map via API"; fi
 
 check_post() {

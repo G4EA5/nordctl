@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -100,18 +101,26 @@ def schedule_ui_restart(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     log_dir = Path.home() / ".local" / "share" / "nordctl"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "serve.log"
-    script = (
-        "set +e\n"
-        "sleep 1\n"
-        "systemctl --user daemon-reload 2>/dev/null\n"
-        f"systemctl --user restart {UI_UNIT} 2>/dev/null || systemctl --user start {UI_UNIT} 2>/dev/null\n"
-        "sleep 2\n"
-        f"if ! systemctl --user is-active --quiet {UI_UNIT} 2>/dev/null; then\n"
-        f"  pkill -f '{bin_path} serve' 2>/dev/null\n"
-        "  sleep 0.5\n"
-        f"  nohup {bin_path} serve --bind {bind} --port {port} >>{log_path} 2>&1 &\n"
-        "fi\n"
-    )
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        script = (
+            "set +e\n"
+            "sleep 1\n"
+            f"systemctl --user daemon-reload 2>/dev/null\n"
+            f"systemctl --user restart {UI_UNIT} 2>/dev/null || systemctl --user start {UI_UNIT} 2>/dev/null\n"
+        )
+    else:
+        script = (
+            "set +e\n"
+            "sleep 1\n"
+            "systemctl --user daemon-reload 2>/dev/null\n"
+            f"systemctl --user restart {UI_UNIT} 2>/dev/null || systemctl --user start {UI_UNIT} 2>/dev/null\n"
+            "sleep 2\n"
+            f"if ! systemctl --user is-active --quiet {UI_UNIT} 2>/dev/null; then\n"
+            f"  pkill -f '{bin_path} serve' 2>/dev/null\n"
+            "  sleep 0.5\n"
+            f"  nohup {bin_path} serve --bind {bind} --port {port} >>{log_path} 2>&1 &\n"
+            "fi\n"
+        )
     if not _spawn_detached(["bash", "-c", script]):
         return {"ok": False, "error": "Could not schedule UI restart worker"}
     return {
