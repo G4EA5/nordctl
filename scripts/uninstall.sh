@@ -1,6 +1,7 @@
-# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 #!/usr/bin/env bash
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 # Remove nordctl user install (keeps ~/.config/nordctl unless --purge-config)
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -euo pipefail
 
 PURGE_CONFIG=0

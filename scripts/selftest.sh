@@ -1,5 +1,5 @@
-# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 #!/usr/bin/env bash
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 # nordctl self-test — run before manual UI retest
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -1,5 +1,5 @@
-# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 #!/usr/bin/env bash
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 # Fail if the tree contains patterns that must not ship on GitHub.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

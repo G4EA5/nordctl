@@ -1,8 +1,10 @@
+#!/usr/bin/env bash
 # nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
 # nordctl installer for Linux — friendly first-run experience
 #
 # Future: install should ask only 3 product shapes; detailed setup moves to the
 # dashboard welcome wizard. See docs/INSTALL_WIZARD.md (design — not built yet).
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -uo pipefail
 
 PREFIX="${PREFIX:-$HOME/.local}"
