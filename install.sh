@@ -26,6 +26,66 @@ info() { echo -e "${GREEN}==>${NC} $*"; }
 warn() { echo -e "${YELLOW}!!${NC} $*" >&2; }
 fail() { echo -e "${RED}ERROR:${NC} $*" >&2; exit 1; }
 
+pip_externally_managed() {
+  python3 -c 'import sys, pathlib
+p = pathlib.Path(getattr(sys, "base_prefix", sys.prefix)) / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "EXTERNALLY-MANAGED"
+raise SystemExit(0 if p.is_file() else 1)' 2>/dev/null
+}
+
+ensure_user_venv() {
+  VENV_DIR="${NORDCTL_VENV_DIR:-$HOME/.local/share/nordctl/venv}"
+  if [[ -x "$VENV_DIR/bin/python" ]]; then
+    PIP="$VENV_DIR/bin/pip"
+    return 0
+  fi
+  if ! python3 -m venv "$VENV_DIR" 2>/dev/null; then
+    warn "python3-venv missing — installing python3-venv python3-pip"
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update -qq
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv python3-pip python3-full \
+        || fail "Could not install python3-venv. Run: sudo apt install python3-venv python3-full"
+    else
+      fail "Could not create venv. Install python3-venv for your distro."
+    fi
+    python3 -m venv "$VENV_DIR" || fail "venv creation failed after installing python3-venv"
+  fi
+  PIP="$VENV_DIR/bin/pip"
+  info "Using private Python environment at $VENV_DIR"
+}
+
+install_user_package() {
+  local spec="$1"
+  mkdir -p "$PREFIX/bin" "$PREFIX/share/nordctl"
+  if pip_externally_managed; then
+    ensure_user_venv
+    "$PIP" install "$spec" || fail "pip install failed in venv"
+    ln -sf "$VENV_DIR/bin/nordctl" "$PREFIX/bin/nordctl"
+  else
+    if pip3 install --user "$spec"; then
+      :
+    else
+      warn "pip --user failed; using private Python environment"
+      ensure_user_venv
+      "$PIP" install "$spec" || fail "pip install failed"
+      ln -sf "$VENV_DIR/bin/nordctl" "$PREFIX/bin/nordctl"
+    fi
+  fi
+  export PATH="$PREFIX/bin:$PATH"
+  BIN="${PREFIX}/bin/nordctl"
+  [[ -x "$BIN" ]] || BIN="$(command -v nordctl || true)"
+  [[ -n "$BIN" && -x "$BIN" ]] || fail "nordctl not found — add $PREFIX/bin to PATH"
+}
+
+pip_install_extra() {
+  if [[ -n "${PIP:-}" && -x "$PIP" ]]; then
+    "$PIP" install "$@"
+  elif (( SYSTEM )); then
+    sudo pip3 install --break-system-packages "$@" 2>/dev/null || sudo pip3 install "$@"
+  else
+    pip3 install --user "$@"
+  fi
+}
+
 ask_yes_no() {
   local prompt="$1"
   local default="${2:-n}"
@@ -127,7 +187,7 @@ Usage: ./install.sh [options]
   --skip-ui           CLI only, skip UI service prompt
   -h, --help          Show help
 
-Requires: Python 3.10+, pip
+Requires: Python 3.10+ (venv is created automatically on Ubuntu 24.04+)
 Optional: NordVPN Linux CLI, system tray (pystray + Pillow)
 
 Help: after install, open http://127.0.0.1:PORT/help.html in the web UI
@@ -174,17 +234,9 @@ if (( SYSTEM )); then
   sudo install -d /usr/share/nordctl
   sudo cp -r presets /usr/share/nordctl/
   BIN="nordctl"
-  PIP_SPEC="."
 else
-  pip3 install --user . || fail "pip install --user failed — is pip installed?"
-  mkdir -p "$PREFIX/share/nordctl"
+  install_user_package .
   cp -r presets "$PREFIX/share/nordctl/"
-  export PATH="$PREFIX/bin:$PATH"
-  BIN="${PREFIX}/bin/nordctl"
-  PIP_SPEC="."
-  if [[ ! -x "$BIN" ]]; then
-    fail "nordctl not found at $BIN — add $PREFIX/bin to PATH"
-  fi
 fi
 
 info "Initializing config (pick free UI port + safety baseline)"
@@ -252,11 +304,7 @@ fi
 
 if [[ "$INSTALL_TRAY" == "1" ]]; then
   info "Installing system tray support"
-  if (( SYSTEM )); then
-    sudo pip3 install --break-system-packages '.[tray]' 2>/dev/null || sudo pip3 install 'pystray>=0.19.5' 'Pillow>=9.0' || warn "Could not install tray Python packages"
-  else
-    pip3 install --user '.[tray]' 2>/dev/null || pip3 install --user 'pystray>=0.19.5' 'Pillow>=9.0' || warn "Could not install tray Python packages"
-  fi
+  pip_install_extra '.[tray]' 2>/dev/null || pip_install_extra 'pystray>=0.19.5' 'Pillow>=9.0' || warn "Could not install tray Python packages"
   if "$BIN" tray install; then
     info "System tray enabled (autostart at login)"
   else
