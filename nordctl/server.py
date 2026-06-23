@@ -115,6 +115,12 @@ class NordctlHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/api/") and not self._enforce_auth(path, "GET"):
             return
+        try:
+            self._do_get(path)
+        except Exception as exc:
+            self._post_error(exc, path)
+
+    def _do_get(self, path: str) -> None:
         if path == "/api/settings":
             from nordctl.settings_panel import settings_payload
 
@@ -1086,7 +1092,9 @@ def run_server(
         )
     from nordctl.activity_log import record_event
 
-    demo_active = demo or bool((cfg.get("server") or {}).get("demo_mode"))
+    from nordctl.demo_mode import is_demo_mode
+
+    demo_active = demo or is_demo_mode(cfg)
     headless = bool((cfg.get("server") or {}).get("headless"))
     detail = f"Web UI available at http://{host}:{listen_port}/"
     if demo_active:

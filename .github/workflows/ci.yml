@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y ripgrep iproute2
+        run: sudo apt-get update && sudo apt-get install -y ripgrep iproute2 curl psmisc
 
       - name: Install dependencies
         run: |

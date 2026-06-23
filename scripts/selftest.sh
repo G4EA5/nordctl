@@ -4,6 +4,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+  export NORDCTL_DEMO=1
+fi
 if [[ -z "${NORDCTL_CONFIG_DIR:-}" && ( -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ) ]]; then
   export NORDCTL_CONFIG_DIR="${RUNNER_TEMP:-/tmp}/nordctl-selftest-config"
   rm -rf "$NORDCTL_CONFIG_DIR"
@@ -117,6 +120,7 @@ run "$PY" -c "from nordctl.hooks import hooks_status; assert hooks_status()['ok'
 run "$PY" -c "from nordctl.connection_journal import record_preset_apply, list_journal; record_preset_apply('disconnect', ok=True); assert list_journal(limit=1)['entries']"
 run "$PY" -c "from nordctl.support_bundle import build_anonymized_support_bundle; b=build_anonymized_support_bundle(); assert b.get('ok') and b.get('anonymized')"
 run "$PY" -c "from nordctl.state import build_state_app, build_state_nord, build_state_network, merge_state; a=build_state_app(include_doctor=False); n=build_state_nord(quick=True); m=merge_state(a,n,build_state_network(status=n.get('status'), settings=n.get('settings'), fast_ip=True)); assert m.get('ok')"
+run "$PY" -c "from nordctl.state import build_state_nord, build_state_network, merge_state; n=build_state_nord(quick=True); m=merge_state(build_state_network(status=n.get('status'), settings=n.get('settings'), mesh_ip=n.get('mesh_ip'), fast_ip=False)); assert m.get('ok') and m.get('ip_info')"
 run "$PY" -c "
 from unittest.mock import patch
 from nordctl.home_ip import learn_public_ip, resolve_home_ip, cache_path
@@ -201,7 +205,7 @@ if command -v fuser >/dev/null 2>&1; then
   fuser -k "${PORT}/tcp" 2>/dev/null || true
   sleep 0.3
 fi
-NORDCTL_DEMO=1 nordctl_cli serve --port "$PORT" >/tmp/nordctl-selftest-serve.log 2>&1 &
+nordctl_cli serve --demo --bind 127.0.0.1 --port "$PORT" >/tmp/nordctl-selftest-serve.log 2>&1 &
 SPID=$!
 for _ in $(seq 1 40); do
   if curl -sf "http://127.0.0.1:${PORT}/api/state/quick" >/dev/null 2>&1; then
@@ -209,17 +213,27 @@ for _ in $(seq 1 40); do
   fi
   sleep 0.25
 done
+if ! kill -0 "$SPID" 2>/dev/null; then
+  red "nordctl serve exited before API smoke tests"
+  tail -40 /tmp/nordctl-selftest-serve.log >&2 || true
+fi
 cleanup() { kill "$SPID" 2>/dev/null || true; wait "$SPID" 2>/dev/null || true; }
 trap cleanup EXIT
 
 check_api() {
   local path="$1" expect="$2"
-  local body
-  body=$(curl -sf "http://127.0.0.1:${PORT}${path}" || echo "")
-  if "$PY" -c "import json,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d.get('ok')${expect} else 1)" "$body" 2>/dev/null; then
+  local body code
+  body=$(curl -sS -w '\n%{http_code}' "http://127.0.0.1:${PORT}${path}" 2>/dev/null || echo -e "\n000")
+  code="${body##*$'\n'}"
+  body="${body%$'\n'*}"
+  if [[ "$code" == "200" ]] && "$PY" -c "import json,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d.get('ok')${expect} else 1)" "$body" 2>/dev/null; then
     grn "GET $path"
   else
     red "GET $path"
+    if [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+      echo "  http=$code body=${body:0:200}" >&2
+      kill -0 "$SPID" 2>/dev/null || tail -20 /tmp/nordctl-selftest-serve.log >&2 || true
+    fi
   fi
 }
 

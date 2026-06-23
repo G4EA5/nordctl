@@ -538,23 +538,23 @@ def main() -> None:
             payload = wifi_hub_payload()
         if args.json:
             print(json.dumps(payload, indent=2))
+            sys.exit(0)
+        if cmd == "status":
+            conn = payload.get("connection") or {}
+            print(f"WiFi: {conn.get('ssid') or '—'} ({conn.get('state') or '?'})")
+            print(f"Profile: {conn.get('active_profile') or '—'}")
+            print(f"Profiles in config: {len(payload.get('profiles') or [])}")
+            docs = payload.get("doctors") or {}
+            print(docs.get("summary") or "")
+        elif cmd == "doctor":
+            for key in ("wifi", "network", "nord"):
+                doc = payload.get(key) or {}
+                print(f"\n{doc.get('title', key)}:")
+                for c in doc.get("checks") or []:
+                    mark = "OK" if c.get("ok") else "!!"
+                    print(f"  [{mark}] {c.get('summary')}")
         else:
-            if cmd == "status":
-                conn = payload.get("connection") or {}
-                print(f"WiFi: {conn.get('ssid') or '—'} ({conn.get('state') or '?'})")
-                print(f"Profile: {conn.get('active_profile') or '—'}")
-                print(f"Profiles in config: {len(payload.get('profiles') or [])}")
-                docs = payload.get("doctors") or {}
-                print(docs.get("summary") or "")
-            elif cmd == "doctor":
-                for key in ("wifi", "network", "nord"):
-                    doc = payload.get(key) or {}
-                    print(f"\n{doc.get('title', key)}:")
-                    for c in doc.get("checks") or []:
-                        mark = "OK" if c.get("ok") else "!!"
-                        print(f"  [{mark}] {c.get('summary')}")
-            else:
-                print(payload.get("note") or ("OK" if payload.get("ok") else payload.get("error") or "Done"))
+            print(payload.get("note") or ("OK" if payload.get("ok") else payload.get("error") or "Done"))
         sys.exit(0 if payload.get("ok", True) else 1)
         return
 
