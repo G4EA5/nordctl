@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: lan-discovery-off
+label: LAN discovery off
+category: Settings
+summary: Block local network access while on VPN
+steps:
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "off"

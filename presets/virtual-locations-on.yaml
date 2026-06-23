@@ -1,0 +1,11 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: virtual-locations-on
+label: Virtual locations on
+category: Settings
+summary: Enable virtual location servers and connect
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: virtual-location
+    value: "on"
+  - action: nordvpn_connect

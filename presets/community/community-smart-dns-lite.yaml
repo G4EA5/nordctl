@@ -1,0 +1,15 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: community-smart-dns-lite
+label: TV streaming (community template)
+summary: Disconnect VPN and apply Smart DNS on configured WiFi profiles — template for forking.
+category: Community
+region: general
+requires:
+  - connect_country
+steps:
+  - action: nordvpn_disconnect
+  - action: network_smart_dns
+  - action: nordvpn_set
+    key: dns
+    value: "off"
+note: Allowlist your public IP in Nord Account for Smart DNS playback.

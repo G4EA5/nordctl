@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: routing-enabled
+label: Routing on
+category: Advanced
+summary: Re-enable VPN/Meshnet traffic routing
+steps:
+  - action: nordvpn_set
+    key: routing
+    value: "on"

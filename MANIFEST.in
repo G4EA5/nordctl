@@ -1,0 +1,8 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+include README.md LICENSE CHANGELOG.md
+recursive-include presets *.yaml
+recursive-include presets/community *
+recursive-include docs *
+recursive-include nordctl/static *
+recursive-include examples *
+recursive-include packaging *

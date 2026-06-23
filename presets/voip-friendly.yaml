@@ -1,0 +1,31 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: voip-friendly
+label: VoIP / messaging friendly
+category: Performance
+summary: VPN with firewall off and configurable port allowlist
+requires:
+  - connect_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: firewall
+    value: "off"
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "on"
+  - action: nordvpn_set
+    key: routing
+    value: "on"
+  - action: nordvpn_set
+    key: killswitch
+    value: "off"
+  - action: allowlist_voip_ports
+  - action: nordvpn_connect
+    target: "{connect_country}"
+  - action: nordvpn_set
+    key: autoconnect
+    value: "on"
+    extra: "{connect_country}"

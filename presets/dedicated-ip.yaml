@@ -1,0 +1,14 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: dedicated-ip
+label: Dedicated IP
+category: Server groups
+summary: Connect to Dedicated IP server group (requires Nord add-on)
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      routing: "on"
+      lan-discovery: "on"
+  - action: nordvpn_connect
+    group: Dedicated_IP

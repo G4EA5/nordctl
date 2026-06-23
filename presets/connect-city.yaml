@@ -1,0 +1,16 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: connect-city
+label: Connect to city
+category: Connect
+summary: Connect using connect_city (e.g. "United Kingdom London")
+requires:
+  - connect_city
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      routing: "on"
+      lan-discovery: "on"
+  - action: nordvpn_connect
+    target: "{connect_city}"

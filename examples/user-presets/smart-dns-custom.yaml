@@ -1,0 +1,15 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: smart_dns_custom
+label: TV streaming (custom Smart DNS)
+summary: VPN off, Nord Smart DNS on configured WiFi profiles, Meshnet stays on
+category: Custom
+steps:
+  - action: nordvpn_disconnect
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      lan-discovery: "on"
+      routing: "on"
+      analytics: "off"
+      autoconnect: "off"
+  - action: network_smart_dns

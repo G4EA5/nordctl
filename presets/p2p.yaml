@@ -1,0 +1,18 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: p2p
+label: P2P / file sharing
+category: Server groups
+summary: Connect to NordVPN P2P server group (requires P2P-capable subscription)
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "on"
+  - action: nordvpn_set
+    key: routing
+    value: "on"
+  - action: nordvpn_connect
+    group: P2P

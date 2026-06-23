@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: threat-protection-off
+label: Threat Protection off
+category: Privacy
+summary: Disable Threat Protection Lite
+steps:
+  - action: nordvpn_set
+    key: threatprotectionlite
+    value: "off"

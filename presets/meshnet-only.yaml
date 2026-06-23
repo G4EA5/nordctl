@@ -1,0 +1,20 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: meshnet-only
+label: Meshnet only
+category: Meshnet
+summary: VPN off, router DNS restored, Meshnet and LAN discovery on
+steps:
+  - action: nordvpn_disconnect
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "on"
+  - action: nordvpn_set
+    key: routing
+    value: "on"
+  - action: nordvpn_set
+    key: autoconnect
+    value: "off"
+  - action: network_restore_dns

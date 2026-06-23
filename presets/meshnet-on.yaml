@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: meshnet-on
+label: Meshnet on
+category: Meshnet
+summary: Enable Meshnet only (no VPN change)
+steps:
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"

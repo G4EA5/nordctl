@@ -1,0 +1,120 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+openapi: 3.0.3
+info:
+  title: nordctl local API
+  description: |
+    Local HTTP API served by `nordctl serve`. Default bind is 127.0.0.1 only.
+    LAN access may require dashboard password — see ui_auth settings.
+  version: 0.2.0
+  license:
+    name: MIT
+servers:
+  - url: http://127.0.0.1:8765
+    description: Default local UI port (configurable)
+paths:
+  /api/state:
+    get:
+      summary: Full application state
+      responses:
+        "200":
+          description: VPN status, presets, doctor, modules
+  /api/state/quick:
+    get:
+      summary: Fast dashboard state
+  /api/state/app:
+    get:
+      summary: App metadata (presets, doctor, profiles — no Nord CLI)
+  /api/state/nord:
+    get:
+      summary: NordVPN CLI layer (status, settings, mesh, countries)
+  /api/state/network:
+    get:
+      summary: Host/network layer (Smart DNS, UFW panel, public IP)
+  /api/security/summary:
+    get:
+      summary: Fast Security tab (health score, scenarios — no leak lab)
+  /api/security:
+    get:
+      summary: Full security hub (leak lab, audit, DNS assistant, …)
+  /api/action:
+    post:
+      summary: Run an action (preset, connect, config, …)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  example: preset
+                preset:
+                  type: string
+                dry_run:
+                  type: boolean
+                verify:
+                  type: boolean
+      responses:
+        "200":
+          description: Action result; may include verification checks after preset apply
+  /api/presets/community:
+    get:
+      summary: List bundled and user community presets
+  /api/presets/community/import:
+    post:
+      summary: Import preset YAML from URL
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+  /api/config/import:
+    post:
+      summary: Import redacted config tarball
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+                merge:
+                  type: boolean
+  /api/export/config:
+    post:
+      summary: Export redacted config bundle (tar.gz)
+  /api/leaklab:
+    get:
+      summary: DNS and leak lab tests
+  /api/doctor:
+    get:
+      summary: System readiness report
+  /api/ha/state:
+    get:
+      summary: Home Assistant friendly JSON
+  /api/demo:
+    get:
+      summary: Whether demo mode is active
+  /api/compatibility:
+    get:
+      summary: Platform compatibility matrix
+  /api/hooks:
+    get:
+      summary: User hook script status
+  /api/support-bundle:
+    post:
+      summary: Export diagnostic bundle
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                anonymized:
+                  type: boolean
+                  description: Scrub IPs, SSIDs, secrets for GitHub issues

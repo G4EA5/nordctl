@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+*.swp
+.DS_Store
+.cursor/
+.dashboard-patch/
+
+# Never commit personal nordctl data
+config.yaml
+**/config.yaml.bak
+**/support/
+**/exports/
+home_ip_cache.json

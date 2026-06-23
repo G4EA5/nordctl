@@ -1,0 +1,10 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: post-quantum-off
+label: Post-quantum off
+category: Technology
+summary: Disable post-quantum and re-enable Meshnet
+steps:
+  - action: nordvpn_settings
+    settings:
+      post-quantum: "off"
+      meshnet: "on"

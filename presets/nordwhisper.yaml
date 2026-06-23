@@ -1,0 +1,16 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: nordwhisper
+label: NordWhisper (obfuscated)
+category: Technology
+summary: Obfuscated VPN for restrictive networks
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: technology
+    value: NORDWHISPER
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      routing: "on"
+      lan-discovery: "on"
+  - action: nordvpn_connect

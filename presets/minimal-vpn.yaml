@@ -1,0 +1,16 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: minimal-vpn
+label: Minimal overhead VPN
+category: Performance
+summary: Fewest restrictions — NordLynx, no kill switch/firewall
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_settings
+    settings:
+      technology: NORDLYNX
+      firewall: "off"
+      killswitch: "off"
+      meshnet: "on"
+      lan-discovery: "on"
+      routing: "on"
+  - action: nordvpn_connect

@@ -1,0 +1,21 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: apac-travel
+label: APAC travel
+category: Regional
+region: asia-pacific
+summary: Public WiFi protection when traveling in Asia-Pacific — set travel_country in config
+requires:
+  - travel_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: killswitch
+    value: "on"
+  - action: nordvpn_set
+    key: firewall
+    value: "on"
+  - action: nordvpn_set
+    key: technology
+    value: "NORDLYNX"
+  - action: nordvpn_connect
+    target: "{travel_country}"

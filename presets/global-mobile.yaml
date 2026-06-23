@@ -1,0 +1,18 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: global-mobile
+label: Mobile / metered
+category: Regional
+region: global
+summary: Lightweight NordLynx VPN — lower overhead on mobile hotspots
+requires:
+  - connect_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: technology
+    value: "NORDLYNX"
+  - action: nordvpn_set
+    key: meshnet
+    value: "off"
+  - action: nordvpn_connect
+    target: "{connect_country}"

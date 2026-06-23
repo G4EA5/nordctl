@@ -1,0 +1,26 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: gaming
+label: Gaming
+category: Performance
+summary: Low-friction VPN — firewall off, connect to gaming_country (or connect_country)
+requires:
+  - connect_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: firewall
+    value: "off"
+  - action: nordvpn_set
+    key: killswitch
+    value: "off"
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "on"
+  - action: nordvpn_set
+    key: routing
+    value: "on"
+  - action: nordvpn_connect
+    target: "{gaming_country}"

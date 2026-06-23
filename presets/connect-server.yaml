@@ -1,0 +1,16 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: connect-server
+label: Connect to server
+category: Connect
+summary: Connect to a specific server hostname from config
+requires:
+  - connect_server
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      routing: "on"
+      lan-discovery: "on"
+  - action: nordvpn_connect
+    target: "{connect_server}"

@@ -1,0 +1,32 @@
+# Maintainer: nordctl contributors
+pkgname=nordctl
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Preset-driven NordVPN control for Linux — CLI and local web UI"
+arch=('any')
+url="https://github.com/G4EA5/nordctl"
+license=('MIT')
+depends=('python' 'python-yaml' 'networkmanager')
+optdepends=(
+  'nordvpn: NordVPN CLI for VPN presets'
+  'python-pystray: system tray icon'
+  'python-pillow: tray icon rendering'
+)
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/G4EA5/nordctl/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgname-$pkgver"
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 docs/COMPATIBILITY.md "$pkgdir/usr/share/doc/$pkgname/COMPATIBILITY.md"
+}
+
+# AUR template — update url/sha256sums when publishing releases.
+# Install: git clone, edit version, makepkg -si

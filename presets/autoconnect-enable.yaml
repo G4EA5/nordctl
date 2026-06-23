@@ -1,0 +1,12 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: autoconnect-enable
+label: Auto-connect on
+category: Settings
+summary: Enable auto-connect to connect_country on boot
+requires:
+  - connect_country
+steps:
+  - action: nordvpn_set
+    key: autoconnect
+    value: "on"
+    extra: "{connect_country}"

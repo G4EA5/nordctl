@@ -1,0 +1,7 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: reconnect
+label: Reconnect (best server)
+category: Connect
+summary: Disconnect and connect to recommended server
+steps:
+  - action: nordvpn_reconnect

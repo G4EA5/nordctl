@@ -1,0 +1,11 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: uk-streaming
+label: UK streaming setup
+category: Regional
+region: europe
+summary: Smart DNS on WiFi plus optional UK VPN — set connect_country to United Kingdom
+steps:
+  - action: network_smart_dns
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"

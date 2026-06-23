@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: arp-ignore-off
+label: ARP ignore off
+category: Advanced
+summary: Respond to ARP on LAN while VPN is up (advanced)
+steps:
+  - action: nordvpn_set
+    key: arp-ignore
+    value: "off"

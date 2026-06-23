@@ -1,0 +1,158 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+# Copy to ~/.config/nordctl/config.yaml and customize.
+# See README.md for full documentation.
+
+nordvpn_bin: nordvpn
+
+# Default country/server for presets that connect (e.g. "United Kingdom")
+connect_country: null
+
+# Optional: alternate country for travel preset
+travel_country: null
+
+# Optional: preferred country for gaming preset (falls back to connect_country)
+gaming_country: null
+
+# Optional: country for work / split-tunnel presets
+work_country: null
+
+# Optional: connect to a specific server hostname (e.g. uk1234.nordvpn.com)
+connect_server: null
+
+# Optional: "Country City" pair for nordvpn connect (e.g. "United Kingdom London")
+connect_city: null
+
+# Optional: Meshnet peer hostname for meshnet peer connect preset
+mesh_peer: null
+
+# Optional: custom DNS when using custom-dns preset (max 3 IPv4 addresses)
+custom_dns: []
+
+# Extra subnets to allowlist (split-tunnel preset can apply all of these)
+allowlist_subnets: []
+
+smart_dns:
+  primary: 103.86.96.103
+  secondary: 103.86.99.103
+
+wifi:
+  # Network interface for WiFi (null = auto-detect first wireless device)
+  device: null
+  # NetworkManager connection profile names to update for Smart DNS
+  profiles:
+    - MyWiFi-5G
+    - MyWiFi
+
+# Subnet allowlisted when using split-tunnel / LAN presets
+lan_allowlist_cidr: 192.168.0.0/16
+
+# Ports for voip-friendly preset (customize for your apps)
+voip_ports:
+  - 80
+  - 443
+  - 4244
+  - 5242
+  - 5243
+  - 7985
+
+public_ip_check_url: https://ifconfig.me/ip
+
+server:
+  bind: 127.0.0.1
+  port: 8765
+  # access_mode: local | lan | custom — change in Advanced → Services → Network access
+  # ui_password_* — set via Tools → Extra settings or ./install.sh (stored hashed)
+  ui_password_exempt_local: true
+
+# auto = VPN mode when Nord CLI present; vpn = require VPN setup; tools_only = legacy (UI no longer hides modules)
+usage_mode: auto
+
+# full = complete package (default). Legacy nord/network values are ignored by the UI.
+install_profile: auto
+
+# server.headless: true — VPS/server profile (no tray, no browser alerts); set via nordctl init --headless
+# server.demo_mode: true — simulated UI state (or use nordctl demo / NORDCTL_DEMO=1)
+
+# Presets directory (null = bundled presets shipped with nordctl)
+presets_dir: null
+
+# Optional: preset hook scripts (see docs/HOOKS.md)
+# hooks_dir: null
+# hooks_enabled: true
+
+# ── v0.2 features ──
+
+active_profile: default
+config_profiles:
+  default: {}
+  streaming:
+    connect_country: United Kingdom
+  travel:
+    travel_country: United States
+
+favorites:
+  countries: []
+  servers: []
+
+wifi_zones:
+  auto_apply: false
+  untrusted_preset: public-wifi
+  # ── Top bar Home / Public IP (travel-safe) ──
+  # Learns ISP address per SSID when VPN is off → ~/.config/nordctl/home_ip_cache.json
+  home_ip_learn: true
+  # With VPN on, show Home chip only on home WiFi (hidden at hotels/cafés).
+  # Home WiFi = SSID in wifi_zones.trusted OR any name in wifi.profiles above.
+  home_ip_when_trusted: true
+  # Optional global fallback (prefer per-zone home_public_ip instead):
+  # home_public_ip: 203.0.113.1
+  trusted:
+    # - ssid: MyHomeWiFi
+    #   preset: streaming-smartdns
+    #   home_public_ip: 203.0.113.1   # optional fixed ISP for this SSID only
+
+schedules: []
+#  - id: evening-stream
+#    preset: streaming-smartdns
+#    time: "18:00"
+#    days: Mon..Sun
+#    enabled: true
+
+auto_snapshot_before_preset: true
+
+tray:
+  enabled: false
+  autostart: false
+  # Run: nordctl tray install   (or say yes during ./install.sh)
+
+# ── v0.3 features ──
+
+features:
+  onboarding_complete: false
+  legal_accepted: false
+  modules: {}   # empty = all modules; or pick e.g. wifi: true, alerts: false
+
+alerts:
+  browser_enabled: true
+  watch_enabled: true
+  email:
+    enabled: false
+    to: you@example.com
+    smtp_host: smtp.example.com
+    smtp_user: ""
+    smtp_password: ""
+  webhook:
+    enabled: false
+    url: null   # optional POST target you control (tier 6)
+  rules:
+    vpn_disconnect: true
+    smart_dns_drift: true
+    health_score_low: true
+    security_audit: true
+    wifi_untrusted: false
+    test: true
+  scan_email:
+    enabled: true
+    email_on_findings: true
+    email_on_failure: true
+    email_always: false
+    lynis_min_score_alert: 65

@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: meshnet-off
+label: Meshnet off
+category: Meshnet
+summary: Disable Meshnet
+steps:
+  - action: nordvpn_set
+    key: meshnet
+    value: "off"

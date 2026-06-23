@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: killswitch-on
+label: Kill switch on
+category: Kill switch
+summary: Block internet if VPN drops
+steps:
+  - action: nordvpn_set
+    key: killswitch
+    value: "on"

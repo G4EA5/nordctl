@@ -1,0 +1,24 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: travel
+label: Travel connect
+category: Connect
+summary: Connect to travel_country from config with Meshnet
+requires:
+  - travel_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "on"
+  - action: nordvpn_set
+    key: routing
+    value: "on"
+  - action: nordvpn_connect
+    target: "{travel_country}"
+  - action: nordvpn_set
+    key: autoconnect
+    value: "on"
+    extra: "{travel_country}"

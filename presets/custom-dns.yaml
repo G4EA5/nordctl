@@ -1,0 +1,17 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: custom-dns
+label: Custom DNS
+category: DNS
+summary: Use custom_dns addresses from config while connected
+requires:
+  - custom_dns
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: dns
+    value: "{custom_dns}"
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      routing: "on"
+  - action: nordvpn_connect

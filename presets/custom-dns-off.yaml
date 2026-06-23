@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: custom-dns-off
+label: Nord/custom DNS off
+category: DNS
+summary: Disable custom DNS (use Nord default when on VPN)
+steps:
+  - action: nordvpn_set
+    key: dns
+    value: "off"

@@ -1,0 +1,257 @@
+<!-- nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>nordctl — Help &amp; Setup Guide</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="wrap help-page">
+    <header class="hero">
+      <div class="brand">
+        <h1>Help &amp; Setup</h1>
+        <p>Everything you need to get nordctl working — from zero to streaming</p>
+      </div>
+      <button type="button" class="btn primary" data-app-home title="Return to the main dashboard">← Dashboard</button>
+    </header>
+
+    <nav class="help-nav panel-nav-actions">
+      <button type="button" class="btn sm" data-help-jump="start">Getting started</button>
+      <button type="button" class="btn sm" data-help-jump="install-nordvpn">Install NordVPN</button>
+      <button type="button" class="btn sm" data-help-jump="login">Login</button>
+      <button type="button" class="btn sm" data-help-jump="config">Configure nordctl</button>
+      <button type="button" class="btn sm" data-help-jump="topbar-ip">Top bar IP</button>
+      <button type="button" class="btn sm" data-help-jump="presets">Presets</button>
+      <button type="button" class="btn sm" data-help-jump="smart-dns">Smart DNS</button>
+      <button type="button" class="btn sm" data-help-jump="troubleshoot">Troubleshooting</button>
+      <button type="button" class="btn sm" data-help-jump="faq">FAQ</button>
+    </nav>
+
+    <section class="panel help-section" id="start">
+      <h2>Getting started</h2>
+      <p><strong>nordctl</strong> is a free, open-source helper for NordVPN on Linux. It does <em>not</em> include NordVPN itself — you install Nord’s official client once, log in, then use nordctl for one-click presets and a friendly web UI.</p>
+      <ol class="steps">
+        <li>Install nordctl: <code>pip install nordctl</code> or <code>./install.sh</code></li>
+        <li>Initialize: <code>nordctl init</code></li>
+        <li>Start the UI: <code>nordctl serve</code> — open top bar <strong>Wizard</strong> or <code>#dashboard/wizard</code> for install and setup</li>
+        <li>Install NordVPN (if using VPN presets): <code>nordctl install-nordvpn</code></li>
+        <li>Log in: <code>nordvpn login</code></li>
+        <li>Edit <code>~/.config/nordctl/config.yaml</code> — or use the dashboard wizard / WiFi tab instead of manual YAML</li>
+        <li>Preview or apply a preset: <code>nordctl apply streaming-smartdns --dry-run</code></li>
+      </ol>
+      <div class="tip">
+        <strong>Tip:</strong> Hover any button in the dashboard for a short explanation. Use <strong>↻ Refresh</strong> after changing settings in a terminal.
+      </div>
+    </section>
+
+    <section class="panel help-section" id="install-nordvpn">
+      <h2>Installing NordVPN (official package)</h2>
+      <p>nordctl cannot bundle NordVPN — that would violate Nord’s licence. Instead we run Nord Security’s official installer on Debian/Ubuntu, or show manual steps for other distros.</p>
+
+      <h3>Automatic (Debian / Ubuntu / Mint / Pop!_OS)</h3>
+      <pre class="code-block">nordctl install-nordvpn
+# or from the dashboard: top bar Wizard → Install NordVPN (official)</pre>
+      <p>This runs Nord’s apt repository setup and installs the <code>nordvpn</code> package. You will be prompted for your sudo password.</p>
+
+      <h3>Manual steps (Debian/Ubuntu)</h3>
+      <pre class="code-block">curl -fsSL https://repo.nordvpn.com/deb/nordvpn/debian/pool/main/n/nordvpn-release/nordvpn-release_1.0.0_all.deb -o /tmp/nordvpn-release.deb
+sudo dpkg -i /tmp/nordvpn-release.deb
+sudo apt update
+sudo apt install -y nordvpn
+sudo systemctl enable --now nordvpnd</pre>
+
+      <h3>Other Linux distros</h3>
+      <p>Follow Nord’s official guide:</p>
+      <div class="panel-nav-actions inline-jump-actions">
+        <button type="button" class="btn sm" data-open-url="https://nordvpn.com/download/linux/">nordvpn.com/download/linux</button>
+      </div>
+      <p>Fedora/RHEL, Arch, and others: install via Nord’s repo or AUR, then enable <code>nordvpnd</code> and run <code>nordvpn login</code>.</p>
+
+      <div class="warn">
+        <strong>If install fails:</strong> read the error in the terminal or dashboard log. Common fixes:
+        <ul>
+          <li><strong>dpkg/apt errors</strong> — run <code>sudo apt --fix-broken install</code>, then retry</li>
+          <li><strong>curl not found</strong> — <code>sudo apt install curl</code></li>
+          <li><strong>Service won’t start</strong> — reboot once, then <code>sudo systemctl start nordvpnd</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel help-section" id="login">
+      <h2>Logging in to NordVPN</h2>
+      <p>Login must be done in a terminal (not in the web UI — for your security).</p>
+      <pre class="code-block">nordvpn login</pre>
+      <p>Follow the browser link or use a login token from Nord Account.</p>
+      <div class="panel-nav-actions inline-jump-actions">
+        <button type="button" class="btn sm" data-open-url="https://my.nordaccount.com/">Open my.nordaccount.com</button>
+      </div>
+      <p>Verify:</p>
+      <pre class="code-block">nordvpn account
+nordvpn status</pre>
+    </section>
+
+    <section class="panel help-section" id="config">
+      <h2>Configure nordctl</h2>
+      <p>Config file: <code>~/.config/nordctl/config.yaml</code></p>
+      <pre class="code-block">connect_country: United Kingdom
+
+wifi:
+  device: auto          # or wlan0 — auto-detect is fine
+  profiles:
+    - MyWiFi-5G
+    - MyWiFi
+
+smart_dns:
+  primary: "103.86.96.103"
+  secondary: "103.86.99.103"
+
+server:
+  bind: 127.0.0.1
+  port: 8765</pre>
+
+      <h3>WiFi profile names</h3>
+      <p>List your NetworkManager connection names (not SSID broadcast name — the saved profile name):</p>
+      <pre class="code-block">nmcli -t -f NAME connection show</pre>
+      <p>Add every WiFi profile you use (2.4 GHz and 5 GHz often have separate names). Smart DNS presets update DNS on all listed profiles. These names also mark <strong>home WiFi</strong> for the top bar <strong>Home</strong> chip.</p>
+
+      <h3>Home ISP in the top bar</h3>
+      <p>With VPN on, nordctl shows your ISP address only on home WiFi (profiles above or trusted zones). Disconnect VPN once at home to auto-learn into <code>~/.config/nordctl/home_ip_cache.json</code>, or set <code>home_public_ip</code> on a trusted zone. See <a href="#topbar-ip">Top bar IP</a>.</p>
+      <pre class="code-block">wifi_zones:
+  home_ip_learn: true
+  home_ip_when_trusted: true
+  trusted:
+    - ssid: MyHomeWiFi
+      preset: streaming-smartdns
+      home_public_ip: 203.0.113.1</pre>
+
+      <h3>UI port</h3>
+      <p>If port 8765 is busy, run <code>nordctl init --fix-port</code>. The server also auto-falls back at runtime and prints the URL.</p>
+
+      <h3>In-app file editor</h3>
+      <p>Click <strong>✎ Edit files</strong> on the dashboard for a full-screen editor:</p>
+      <ul>
+        <li><code>~/.config/nordctl/config.yaml</code> — main settings</li>
+        <li><code>~/.config/nordctl/presets/*.yaml</code> — your custom presets</li>
+        <li>Bundled presets — read-only reference</li>
+      </ul>
+      <p>Features: YAML validate, WiFi profile picker, snippets, Ctrl+S to save, automatic backup (<code>.bak</code>) before each save.</p>
+    </section>
+
+    <section class="panel help-section" id="presets">
+      <h2>Presets</h2>
+      <p>Presets are one-click workflows: VPN connect/disconnect, Smart DNS, Meshnet, kill switch, split tunnel, and more. Click <strong>Apply</strong> on a preset card in the dashboard, or use the CLI:</p>
+      <pre class="code-block">nordctl presets
+nordctl apply streaming-smartdns
+nordctl apply meshnet-only</pre>
+      <p>Some presets need <code>connect_country</code> or <code>wifi.profiles</code> in config — cards show “Needs config” when applicable.</p>
+      <p>Full catalog: see <code>presets/README.md</code> in the project repository.</p>
+    </section>
+
+    <section class="panel help-section" id="smart-dns">
+      <h2>TV streaming (Smart DNS)</h2>
+      <ol class="steps">
+        <li>Enable Smart DNS in your Nord Account</li>
+        <li>Add your <strong>public IP</strong> to the Smart DNS allowlist (the dashboard shows your IP when Smart DNS is active)</li>
+        <li>Set <code>wifi.profiles</code> in config</li>
+        <li>Apply preset <strong>TV streaming (Smart DNS)</strong> — VPN disconnects, Nord DNS is set on WiFi</li>
+      </ol>
+      <div class="panel-nav-actions inline-jump-actions">
+        <button type="button" class="btn sm" data-open-url="https://my.nordaccount.com/">Open Nord Account</button>
+      </div>
+      <p>Smart DNS does not encrypt traffic like VPN; it only routes DNS for region-unlocked streaming. Comply with your streaming service’s terms and local laws.</p>
+    </section>
+
+    <section class="panel help-section" id="topbar-ip">
+      <h2>Top bar IP addresses</h2>
+      <p>The top-right bar shows <strong>Home/Public → VPN · Mesh</strong> when available. Hover for details.</p>
+      <table class="help-table">
+        <thead><tr><th>Chip</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Home</strong></td><td>Your ISP public address on home WiFi</td></tr>
+          <tr><td><strong>Public</strong></td><td>Live WAN address when VPN is off on non-home WiFi</td></tr>
+          <tr><td><strong>VPN</strong></td><td>Nord exit IP while connected</td></tr>
+          <tr><td><strong>Mesh</strong></td><td>Meshnet address on this device</td></tr>
+        </tbody>
+      </table>
+      <h3>Travel-safe default</h3>
+      <p>On hotel or café WiFi with VPN on, only <strong>VPN</strong> and <strong>Mesh</strong> show — your home ISP stays hidden.</p>
+      <h3>Setup at home</h3>
+      <ol class="steps">
+        <li>Add home connection names to <code>wifi.profiles</code></li>
+        <li>Disconnect VPN once on home WiFi (auto-learns ISP per SSID)</li>
+        <li>Reconnect — top bar shows <strong>Home → VPN</strong> from cache</li>
+      </ol>
+      <p>Optional: fixed ISP per SSID via <code>wifi_zones.trusted[].home_public_ip</code> in config.</p>
+    </section>
+
+    <section class="panel help-section" id="troubleshoot">
+      <h2>Troubleshooting</h2>
+
+      <h3>Run the doctor</h3>
+      <pre class="code-block">nordctl doctor</pre>
+      <p>Each check includes fix steps. The dashboard Setup panel shows the same report.</p>
+
+      <table class="help-table">
+        <thead><tr><th>Problem</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td>NordVPN CLI not found</td><td><code>nordctl install-nordvpn</code> or manual install above</td></tr>
+          <tr><td>Not logged in</td><td><code>nordvpn login</code></td></tr>
+          <tr><td>nordvpnd not running</td><td><code>sudo systemctl enable --now nordvpnd</code></td></tr>
+          <tr><td>Smart DNS not sticking</td><td>Check <code>wifi.profiles</code>; may need sudo for system connections</td></tr>
+          <tr><td>Home IP missing (top bar)</td><td>Add <code>wifi.profiles</code>, disconnect VPN once at home, or set <code>home_public_ip</code> on a trusted zone — see <a href="#topbar-ip">Top bar IP</a></td></tr>
+          <tr><td>Port in use</td><td><code>nordctl init --fix-port</code></td></tr>
+          <tr><td>Preset failed</td><td>Read message in UI; run <code>nordvpn settings</code> and <code>nordctl doctor</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Advanced commands</h3>
+      <pre class="code-block">nordctl run set technology NORDLYNX
+nordctl run connect --group P2P</pre>
+      <p>Login/logout/register are blocked from the UI and <code>nordctl run</code> for safety.</p>
+    </section>
+
+    <section class="panel help-section" id="faq">
+      <h2>FAQ</h2>
+      <dl class="faq">
+        <dt>Does nordctl include NordVPN?</dt>
+        <dd>No. nordctl is MIT-licensed open source. NordVPN is installed separately from Nord Security’s official package.</dd>
+
+        <dt>Is this affiliated with NordVPN?</dt>
+        <dd>No. Independent tool. See LEGAL.md in the repository.</dd>
+
+        <dt>Why can’t I log in from the web UI?</dt>
+        <dd>Credentials should never go through a local web form. Use <code>nordvpn login</code> in your terminal.</dd>
+
+        <dt>Does install-nordvpn need internet?</dt>
+        <dd>Yes. It downloads Nord’s repository package and runs apt.</dd>
+
+        <dt>Why is Home IP missing with VPN on?</dt>
+        <dd>Home is shown only on home WiFi (<code>wifi.profiles</code> or trusted zones). Disconnect VPN once at home to auto-learn, or set <code>home_public_ip</code> on a zone. See <a href="#topbar-ip">Top bar IP</a>.</dd>
+
+        <dt>macOS?</dt>
+        <dd>Not supported in v0.1 — Linux only (NetworkManager + nordvpn CLI).</dd>
+      </dl>
+    </section>
+
+    <footer class="help-footer panel-nav-actions">
+      <button type="button" class="btn sm" data-app-home>← Back to dashboard</button>
+      <button type="button" class="btn sm" data-open-url="https://nordvpn.com/download/linux/">Official NordVPN Linux</button>
+    </footer>
+  </div>
+  <script>
+    document.querySelectorAll("[data-app-home]").forEach((btn) => {
+      btn.addEventListener("click", () => { location.href = "/"; });
+    });
+    document.querySelectorAll("[data-help-jump]").forEach((btn) => {
+      btn.addEventListener("click", () => { location.hash = btn.getAttribute("data-help-jump"); });
+    });
+    document.querySelectorAll("[data-open-url]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        window.open(btn.getAttribute("data-open-url"), "_blank", "noopener");
+      });
+    });
+  </script>
+</body>
+</html>

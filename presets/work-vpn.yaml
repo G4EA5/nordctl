@@ -1,0 +1,20 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: work-vpn
+label: Work VPN + LAN
+category: Split tunnel
+summary: VPN to work_country while allowlisting home LAN
+requires:
+  - work_country
+  - lan_allowlist_cidr
+steps:
+  - action: network_restore_dns
+  - action: allowlist_subnet
+    cidr: "{lan_allowlist_cidr}"
+  - action: allowlist_subnets_from_config
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      lan-discovery: "on"
+      routing: "on"
+  - action: nordvpn_connect
+    target: "{work_country}"

@@ -1,0 +1,10 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: routing-disabled
+label: Routing off
+category: Advanced
+summary: Stop traffic routing via VPN/Meshnet (disconnect first)
+steps:
+  - action: nordvpn_disconnect
+  - action: nordvpn_set
+    key: routing
+    value: "off"

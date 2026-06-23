@@ -1,0 +1,23 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: public-wifi
+label: Public Wi‑Fi safe
+category: Security
+summary: Kill switch and firewall on, then connect — for cafés, hotels, airports
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: killswitch
+    value: "on"
+  - action: nordvpn_set
+    key: firewall
+    value: "on"
+  - action: nordvpn_set
+    key: meshnet
+    value: "on"
+  - action: nordvpn_set
+    key: lan-discovery
+    value: "off"
+  - action: nordvpn_set
+    key: routing
+    value: "on"
+  - action: nordvpn_connect

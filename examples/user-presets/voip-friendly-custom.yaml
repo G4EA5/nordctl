@@ -1,0 +1,25 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: voip_friendly_custom
+label: VoIP-friendly VPN
+summary: VPN on with firewall off and VoIP ports allowlisted — uses connect_country from config
+category: Custom
+requires:
+  - connect_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      lan-discovery: "on"
+      routing: "on"
+      killswitch: "off"
+      firewall: "off"
+      analytics: "off"
+      autoconnect: "on"
+  - action: allowlist_voip_ports
+  - action: nordvpn_connect
+    target: "{connect_country}"
+  - action: nordvpn_set
+    key: autoconnect
+    value: "on"
+    extra: "{connect_country}"

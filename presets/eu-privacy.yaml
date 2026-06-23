@@ -1,0 +1,24 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: eu-privacy
+label: EU privacy focus
+category: Regional
+region: europe
+summary: Full VPN, Nord DNS, threat protection — common EU privacy setup (set connect_country in config)
+requires:
+  - connect_country
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_set
+    key: killswitch
+    value: "on"
+  - action: nordvpn_set
+    key: firewall
+    value: "on"
+  - action: nordvpn_set
+    key: threatprotectionlite
+    value: "on"
+  - action: nordvpn_set
+    key: dns
+    value: "on"
+  - action: nordvpn_connect
+    target: "{connect_country}"

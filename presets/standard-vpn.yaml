@@ -1,0 +1,14 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: standard-vpn
+label: Standard VPN servers
+category: Server groups
+summary: Connect using the Standard VPN server group
+steps:
+  - action: network_restore_dns
+  - action: nordvpn_settings
+    settings:
+      meshnet: "on"
+      routing: "on"
+      lan-discovery: "on"
+  - action: nordvpn_connect
+    group: Standard_VPN_Servers

@@ -1,0 +1,9 @@
+# nordctl-src-id:NCTL-src-a7f3c912-6e4b-5d8a
+id: arp-ignore-on
+label: ARP ignore on
+category: Advanced
+summary: Default — hide from LAN ARP while on VPN
+steps:
+  - action: nordvpn_set
+    key: arp-ignore
+    value: "on"
