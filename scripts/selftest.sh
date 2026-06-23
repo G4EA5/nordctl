@@ -172,7 +172,11 @@ run_nordctl traffic --filter internet
 run_nordctl logs -n 5
 run_nordctl security
 run_nordctl wifi status
-run_nordctl wifi doctor
+if nordctl_cli wifi --json doctor 2>/dev/null | "$PY" -c "import json,sys; d=json.load(sys.stdin); assert 'wifi' in d and 'nord' in d"; then
+  grn "nordctl wifi --json doctor"
+else
+  red "nordctl wifi --json doctor"
+fi
 run_nordctl onboard --all --non-interactive
 
 # Static assets reference check
@@ -192,12 +196,12 @@ assert chain[0] == 'cloudflare' and 'linode_singapore' in chain
 print('speedtest global mirrors ok')
 "
 
-# API smoke (temp server)
+# API smoke (temp server) — demo mode keeps CI reliable without NordVPN installed
 if command -v fuser >/dev/null 2>&1; then
   fuser -k "${PORT}/tcp" 2>/dev/null || true
   sleep 0.3
 fi
-nordctl_cli serve --port "$PORT" &
+NORDCTL_DEMO=1 nordctl_cli serve --port "$PORT" >/tmp/nordctl-selftest-serve.log 2>&1 &
 SPID=$!
 for _ in $(seq 1 40); do
   if curl -sf "http://127.0.0.1:${PORT}/api/state/quick" >/dev/null 2>&1; then
