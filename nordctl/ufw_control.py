@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from nordctl.config import load_config
-from nordctl.paths import UFW_SUDOERS_SCRIPT, install_script_path
+from nordctl.paths import UFW_SUDOERS_SCRIPT, install_script_path, is_readable_file
 
 _UFW_STATUS_CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
 _UFW_STATUS_TTL = float(os.environ.get("UFW_STATUS_TTL", "20"))
@@ -60,7 +60,7 @@ def _sudo_nopasswd_ok() -> bool:
 
 
 def _ufw_sudoers_installed() -> bool:
-    return SUDOERS_FILE.is_file()
+    return is_readable_file(SUDOERS_FILE)
 
 
 def _ufw_setup_note() -> str:

@@ -14,6 +14,7 @@ from nordctl.paths import (
     PRIV_SUDOERS_SCRIPT,
     install_script_sudo_cmd,
     install_scripts_map,
+    is_readable_file,
 )
 
 NORDCTL_PRIV_SUDOERS = Path("/etc/sudoers.d/nordctl-privileges")
@@ -86,7 +87,7 @@ def in_nordvpn_group() -> bool:
 def nordctl_ui_privileges() -> dict[str, Any]:
     """Detect passwordless sudo for nordctl-specific commands (not `sudo -n true`)."""
     text = ""
-    if NORDCTL_PRIV_SUDOERS.is_file():
+    if is_readable_file(NORDCTL_PRIV_SUDOERS):
         try:
             text = NORDCTL_PRIV_SUDOERS.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -117,12 +118,12 @@ def nordctl_ui_privileges() -> dict[str, Any]:
         ok, err = _sudo_n([chattr_bin, "-i", "/etc/resolv.conf"])
         chattr_ok = ok or not _sudo_needs_password(err)
 
-    sudoers_installed = NORDCTL_PRIV_SUDOERS.is_file() or NORDCTL_UFW_SUDOERS.is_file()
+    sudoers_installed = is_readable_file(NORDCTL_PRIV_SUDOERS) or is_readable_file(NORDCTL_UFW_SUDOERS)
     ui_ok = ufw_ok or ipv6_ok or chattr_ok
 
     return {
         "sudoers_installed": sudoers_installed,
-        "privileges_sudoers": str(NORDCTL_PRIV_SUDOERS) if NORDCTL_PRIV_SUDOERS.is_file() else None,
+        "privileges_sudoers": str(NORDCTL_PRIV_SUDOERS) if is_readable_file(NORDCTL_PRIV_SUDOERS) else None,
         "ufw_passwordless": ufw_ok,
         "ipv6_passwordless": ipv6_ok,
         "ipv6_rules_installed": ipv6_in_file,

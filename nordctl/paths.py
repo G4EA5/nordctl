@@ -32,6 +32,14 @@ def install_scripts_map() -> dict[str, str]:
     }
 
 
+def is_readable_file(path: Path) -> bool:
+    """Stat a path without raising when the OS denies access (e.g. sudoers.d on CI)."""
+    try:
+        return path.is_file()
+    except OSError:
+        return False
+
+
 def resolve_nordctl_bin() -> str:
     """Return absolute path to nordctl — never a bare name systemd cannot execute."""
     found = shutil.which("nordctl")
