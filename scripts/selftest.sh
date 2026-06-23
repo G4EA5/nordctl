@@ -4,8 +4,24 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-BIN="${BIN:-$ROOT/.venv/bin/nordctl}"
-PY="${PY:-$ROOT/.venv/bin/python}"
+if [[ -z "${PY:-}" ]]; then
+  if [[ -x "$ROOT/.venv/bin/python" ]]; then
+    PY="$ROOT/.venv/bin/python"
+  else
+    PY="$(command -v python3 || command -v python)"
+  fi
+fi
+nordctl_cli() {
+  if [[ -n "${BIN:-}" ]]; then
+    "$BIN" "$@"
+  elif [[ -x "$ROOT/.venv/bin/nordctl" ]]; then
+    "$ROOT/.venv/bin/nordctl" "$@"
+  elif command -v nordctl >/dev/null 2>&1; then
+    nordctl "$@"
+  else
+    "$PY" -m nordctl "$@"
+  fi
+}
 PORT="${PORT:-8778}"
 FAIL=0
 
@@ -138,13 +154,13 @@ run "$PY" -c "from nordctl.scan_alerts import identify_scan, parse_scan_result, 
 run "$PY" -c "from nordctl.terminal import quick_commands; n=quick_commands(scope='nord'); w=quick_commands(scope='network'); s=quick_commands(scope='security'); assert n['scope']=='nord' and w['scope']=='network' and s['scope']=='security'; assert any('login' in c['cmd'] for c in n['commands']); assert not any('nordvpn login' in c['cmd'] for c in w['commands']); assert any('lynis' in c['cmd'].lower() for c in s['commands']); assert not any('lynis' in c['cmd'].lower() for c in w['commands'])"
 run "$PY" -c "from nordctl.activity_log import _CATEGORIES, clear_entries, list_entries, record_event, _legacy_category_match; assert 'scan' in _CATEGORIES and 'install' in _CATEGORIES and 'terminal' in _CATEGORIES; clear_entries(); record_event('scan', 'Lynis audit'); record_event('install', 'Installed tcpdump'); assert list_entries(category='scan'); assert _legacy_category_match({'category':'security','title':'Lynis audit failed'}, 'scan')"
 
-run "$BIN" service status >/dev/null
-run "$BIN" traffic --filter internet >/dev/null
-run "$BIN" logs -n 5 >/dev/null
-run "$BIN" security >/dev/null
-run "$BIN" wifi status >/dev/null
-run "$BIN" wifi doctor >/dev/null
-run "$BIN" onboard --all --non-interactive >/dev/null
+run nordctl_cli service status >/dev/null
+run nordctl_cli traffic --filter internet >/dev/null
+run nordctl_cli logs -n 5 >/dev/null
+run nordctl_cli security >/dev/null
+run nordctl_cli wifi status >/dev/null
+run nordctl_cli wifi doctor >/dev/null
+run nordctl_cli onboard --all --non-interactive >/dev/null
 
 # Static assets reference check
 run "$PY" scripts/check_static_ui.py
@@ -164,7 +180,7 @@ print('speedtest global mirrors ok')
 "
 
 # API smoke (temp server)
-"$BIN" serve --port "$PORT" &
+nordctl_cli serve --port "$PORT" &
 SPID=$!
 sleep 1.2
 cleanup() { kill "$SPID" 2>/dev/null || true; wait "$SPID" 2>/dev/null || true; }
