@@ -181,17 +181,30 @@ WIZARD_KEYS="Up/Down move · Space select · Tab to OK/Cancel · Enter confirm"
 
 wizard_pick_extras() {
   local picked
-  picked="$(ui_checklist "Startup & browser" \
-"Optional extras.
+  picked="$(ui_checklist "Install nordctl" \
+"          nordctl
+    -----------------------
+  VPN · WiFi · firewall · network control
+
+WiFi, country, Nord login, and presets are set up
+in the dashboard after install — not here.
 
 ${WIZARD_KEYS}" \
-14 72 2 \
+18 72 3 \
+  "nordvpn" "Install NordVPN Linux client (optional)" OFF \
   "login" "Start dashboard at login (recommended)" ON \
-  "browser" "Open dashboard in browser when install finishes" ON)" || exit 0
+  "browser" "Open dashboard when install finishes" ON)" || exit 0
+  INSTALL_MODE=vpn
+  INSTALL_NORDVPN=0
   INSTALL_UI=0
   OPEN_BROWSER=0
+  [[ "$picked" == *\"nordvpn\"* || "$picked" == *nordvpn* ]] && INSTALL_NORDVPN=1
   [[ "$picked" == *\"login\"* || "$picked" == *login* ]] && INSTALL_UI=1
   [[ "$picked" == *\"browser\"* || "$picked" == *browser* ]] && OPEN_BROWSER=1
+}
+
+blue_screen_wizard() {
+  wizard_pick_extras
 }
 
 open_dashboard_browser() {
@@ -207,82 +220,19 @@ open_dashboard_browser() {
   fi
 }
 
-blue_screen_wizard() {
-  ui_msg "Welcome to nordctl" \
-"          nordctl
-    -----------------------
-  VPN · WiFi · firewall · network control
-
-${WIZARD_KEYS}
-
-WiFi, country, Nord login, and presets are set up
-inside the dashboard wizard — not here." 18 72 || exit 0
-
-  local choice
-  choice="$(ui_radiolist "Choose your starting mode" \
-"What should nordctl focus on first?
-
-${WIZARD_KEYS}" \
-17 70 3 \
-  "minimal" "CLI + dashboard only" OFF \
-  "vpn" "Nord VPN — connect & presets (recommended)" ON \
-  "network" "Network & Security — no Nord account" OFF)" || exit 0
-
-  INSTALL_MODE="$choice"
-  case "$INSTALL_MODE" in
-    minimal)
-      INSTALL_NORDVPN=0
-      ;;
-    vpn)
-      if ui_yesno "NordVPN client" \
-"Install the official NordVPN Linux client now?
-
-Yes — you have a Nord account
-No  — install later from the dashboard
-
-${WIZARD_KEYS}" 14 72; then
-        INSTALL_NORDVPN=1
-      else
-        INSTALL_NORDVPN=0
-      fi
-      ;;
-    network)
-      INSTALL_NORDVPN=0
-      ;;
-  esac
-
-  wizard_pick_extras
-
-  local boot_note="manual: nordctl serve"
-  (( INSTALL_UI )) && boot_note="enabled at login (systemd user service)"
-  local browser_note="no"
-  (( OPEN_BROWSER )) && browser_note="yes — opens when you press OK below"
-
-  ui_msg "Ready to install" \
-"Profile: ${INSTALL_MODE}
-Dashboard at boot: ${boot_note}
-Open browser after: ${browser_note}
-
-Press OK to install nordctl (~1 minute).
-
-${WIZARD_KEYS}" 17 72 || exit 0
-}
-
 text_pick_setup() {
   [[ -n "$INSTALL_MODE" ]] && return 0
+  INSTALL_MODE=vpn
+  INSTALL_UI=1
+  OPEN_BROWSER=1
+  INSTALL_NORDVPN=0
   if [[ ! -t 0 ]]; then
-    INSTALL_MODE=minimal
     return 0
   fi
   echo ""
   echo -e "${BLUE}nordctl installer${NC}"
-  echo "  1) nordctl only  2) Nord VPN (recommended)  3) Network & Security"
-  read -r -p "Choice [2]: " pick
-  case "${pick:-2}" in
-    1) INSTALL_MODE=minimal ;;
-    3) INSTALL_MODE=network ;;
-    *) INSTALL_MODE=vpn ;;
-  esac
+  read -r -p "Install NordVPN client too? [y/N]: " nv
+  [[ "${nv:-}" =~ ^[Yy] ]] && INSTALL_NORDVPN=1
 }
 
 ensure_path_configured() {
@@ -433,14 +383,7 @@ EOF
 }
 
 run_install_steps() {
-  if (( USE_WHIPTAIL )); then
-    ui_msg "Installing" "Installing nordctl now.
-
-This usually takes under a minute.
-Python packages, config, and PATH are set up automatically." 12 72
-  else
-    info "Installing nordctl"
-  fi
+  info "Installing nordctl (usually under a minute)…"
   install_step check_python
   install_step install_package
   install_step init_config
@@ -486,7 +429,17 @@ install_step() {
       (( init_ok )) && warn "init had warnings — continuing"
       read_ui_port
       if ! dashboard_quick_check "$UI_PORT" 2>/dev/null; then
+        info "Port ${UI_PORT} busy or not responding — starting dashboard on a free port…"
+        local boot_out
+        boot_out="$("$BIN" service bootstrap 2>&1)" || true
+        while IFS= read -r line; do
+          [[ -n "$line" ]] && info "$line"
+        done <<<"$boot_out"
+        read_ui_port
+      fi
+      if ! dashboard_quick_check "$UI_PORT" 2>/dev/null; then
         print_port_busy_hint "$UI_PORT"
+        warn "Try: $BIN service bootstrap"
       fi
       ;;
     apply_profile)

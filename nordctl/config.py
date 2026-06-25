@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -345,24 +346,39 @@ def apply_headless_profile(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     return apply_nord_focus_modules(cfg, complete=True)
 
 
+def _port_check_host(bind: str) -> str:
+    """Host used for bind() probes — 0.0.0.0 listens on all interfaces."""
+    b = str(bind or "127.0.0.1").strip()
+    return "127.0.0.1" if b in ("0.0.0.0", "::") else b
+
+
 def ensure_server_port(cfg: dict[str, Any] | None = None, *, update_config: bool = False) -> tuple[int, int | None]:
     """Return a free UI port; optionally persist when the configured port is busy."""
+    import time
+
     cfg = cfg or load_config()
     srv = cfg.setdefault("server", {})
-    host = str(srv.get("bind") or "127.0.0.1")
+    bind = str(srv.get("bind") or "127.0.0.1")
+    check_host = _port_check_host(bind)
     current = int(srv.get("port") or DEFAULT_UI_PORT)
 
     try:
-        from nordctl.service_mgr import stop_manual_serve_processes
+        from nordctl.service_mgr import UI_UNIT, stop_manual_serve_processes, _systemctl_user
 
         stop_manual_serve_processes()
+        if update_config and shutil.which("systemctl"):
+            _systemctl_user("stop", UI_UNIT)
+            time.sleep(0.35)
     except Exception:
         pass
 
-    if is_port_available_for_nordctl(host, current):
+    if is_port_free(check_host, current):
         return current, None
 
-    free = find_free_port(host, DEFAULT_UI_PORT)
+    if not update_config and is_port_available_for_nordctl(check_host, current):
+        return current, None
+
+    free = find_free_port(check_host, DEFAULT_UI_PORT)
     replaced = current if free != current else None
     if update_config and replaced is not None:
         srv["port"] = free
