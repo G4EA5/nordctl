@@ -12,25 +12,30 @@
 
 ---
 
-## Quick start (5 steps)
+## Quick start
 
-| Step | What to do |
-|------|------------|
-| **1. Install nordctl** | `pip install nordctl` or clone + `./install.sh` |
-| **2. Install & login NordVPN** | `nordctl install-nordvpn` then `nordvpn login` |
-| **3. Initialize** | `nordctl init` — creates config, picks UI port, minimal VPN profile |
-| **4. Apply a preset** | `nordctl apply streaming-smartdns` (or `full-vpn`, `meshnet-only`, …) |
-| **5. Open the UI** | `nordctl serve` → http://127.0.0.1:8765/ |
-
-Edit `~/.config/nordctl/config.yaml` first — set `connect_country` and `wifi.profiles` for Smart DNS.
-
-**No Nord account yet?** Try `nordctl demo` to explore the UI with simulated state.
+**Recommended — one command installs everything** (CLI, dashboard, presets, config, UI at login):
 
 ```bash
-pip install 'nordctl[tray]'    # optional system tray
-nordctl doctor                  # readiness check
-nordctl apply --dry-run full-vpn   # preview before applying
+git clone https://github.com/G4EA5/nordctl.git
+cd nordctl
+./install.sh
 ```
+
+The installer shows **one optional checklist** (NordVPN client, dashboard at login, open browser), then opens the dashboard. Use the top-bar **Wizard** for Nord login, WiFi, country, and your first preset — not the terminal.
+
+| After install | What to do |
+|---------------|------------|
+| **Wizard** | Nord login, WiFi sync, home country, optional Smart DNS |
+| **Connect** | Pick a preset (e.g. streaming Smart DNS) or connect from the dashboard |
+| **No Nord account?** | `nordctl demo` — explore the UI with simulated state |
+
+```bash
+nordctl doctor                      # readiness check
+nordctl apply --dry-run full-vpn    # preview before applying
+```
+
+**Manual install** (PyPI, packagers, scripts): `pip install nordctl` then `nordctl init` and `nordctl service bootstrap` — see [Install](#install).
 
 ---
 
@@ -114,23 +119,27 @@ UI captures from demo mode where possible ([full gallery](docs/screenshots/READM
 
 ## Install
 
-### PyPI (recommended)
+### From source (recommended)
+
+```bash
+git clone https://github.com/G4EA5/nordctl.git
+cd nordctl
+./install.sh    # complete package — venv, CLI, dashboard, init, optional NordVPN
+```
+
+One screen before install: optional NordVPN client, start dashboard at login, open browser. Everything else is in the dashboard **Wizard**. Details: [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md).
+
+### PyPI (manual steps)
+
+For advanced users or packaging — you run init and start the UI yourself:
 
 ```bash
 pip install --user nordctl
 pip install 'nordctl[tray]'   # optional: system tray icon
 
 nordctl init
-nordctl serve
-```
-
-### From source
-
-```bash
-git clone https://github.com/G4EA5/nordctl.git
-cd nordctl
-sh install.sh          # or ./install.sh — both work on Ubuntu (dash + bash)
-# optional: sh install.sh --install-nordvpn
+nordctl service bootstrap   # or: nordctl serve
+nordctl install-nordvpn     # optional, separate step
 ```
 
 ### Packaging
@@ -160,7 +169,7 @@ flowchart LR
 
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/openapi.yaml](docs/openapi.yaml) · Hooks: [docs/HOOKS.md](docs/HOOKS.md)
 
-**First run:** `./install.sh` shows one optional checklist (NordVPN client, dashboard at login, open browser). WiFi, country, Nord login, and presets are in the dashboard **Wizard** (`#dashboard/wizard`) — see [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md).
+**First run:** `./install.sh` installs the full stack; the dashboard **Wizard** (`#dashboard/wizard`) covers WiFi, country, Nord login, and presets — [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md).
 
 ---
 

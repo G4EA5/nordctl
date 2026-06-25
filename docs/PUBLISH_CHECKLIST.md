@@ -45,7 +45,7 @@ Add `docs/screenshots/` with demo mode (`nordctl demo`) — no real IPs or SSIDs
 - [x] No secrets in tree (`grep -r smtp_password\|ui_password_hash` should only hit examples/redaction code)
 - [x] Example presets use neutral labels only
 - [x] Demo mode uses RFC 5737 IPs only
-- [ ] Decide: PyPI first or git clone + `install.sh` as primary path
+- [x] Primary path: git clone + `./install.sh` (complete package); PyPI documented as manual/advanced
 
 ## 7. What stays local (never publish)
 
@@ -55,10 +55,10 @@ Add `docs/screenshots/` with demo mode (`nordctl demo`) — no real IPs or SSIDs
 
 Use `nordctl support-bundle --anonymized` when attaching diagnostics to GitHub issues.
 
-## 8. Install & welcome wizard (future)
+## 8. Install & welcome wizard
 
-When implementing the installer UX, follow [INSTALL_WIZARD.md](INSTALL_WIZARD.md):
+Shipped — see [INSTALL_WIZARD.md](INSTALL_WIZARD.md):
 
-- Install asks **three product shapes only** (nordctl only / Nord VPN focus / Network & Security only)
-- WiFi, country, home ISP, presets → **dashboard welcome wizard**, not install prompts or help-only paths
-- Keep `nordctl onboard` for power users; do not remove until wizard ships
+- `./install.sh` — one optional checklist; installs CLI, dashboard, config, presets
+- Dashboard **Wizard** — WiFi, country, Nord login, presets (not install prompts)
+- `nordctl onboard` kept for power users / `--all` scripting

@@ -98,8 +98,10 @@ Home 203.0.113.1  →  VPN 198.51.100.2  ·  Mesh 100.x.x.x
 
 See [HOOKS.md](HOOKS.md) and [openapi.yaml](openapi.yaml).
 
-## First-run experience (planned)
+## First-run experience
 
-Install should ask only **which product shape** the user wants (Nord focus, Network & Security only, or nordctl-only CLI). Detailed setup — WiFi profiles, country, Nord login, home ISP, presets — belongs in a **welcome wizard** on first dashboard open, not in help docs or install prompts.
+**Install (`./install.sh`)** — one optional checklist (NordVPN client, dashboard at login, open browser). Installs CLI, presets, config, and starts the UI. No WiFi/country/module prompts.
 
-Full design: [INSTALL_WIZARD.md](INSTALL_WIZARD.md).
+**Dashboard wizard** — first open and re-runnable from the top bar; WiFi profiles, country, Nord login, home ISP, presets, legal accept.
+
+Details: [INSTALL_WIZARD.md](INSTALL_WIZARD.md).

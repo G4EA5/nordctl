@@ -119,6 +119,11 @@ schedules: []
 
 auto_snapshot_before_preset: true
 
+# Optional NordVPN referral banner (shown in UI when not logged in to NordVPN)
+referral:
+  enabled: true
+  url: https://refer-nordvpn.com/GmVdoRvcJqw
+
 tray:
   enabled: false
   autostart: false

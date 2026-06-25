@@ -53,6 +53,10 @@ DEFAULTS: dict[str, Any] = {
         "demo_mode": False,
         "headless": False,
     },
+    "referral": {
+        "enabled": True,
+        "url": "https://refer-nordvpn.com/GmVdoRvcJqw",
+    },
     "presets_dir": None,
     "active_profile": "default",
     "config_profiles": {
@@ -266,6 +270,9 @@ def usage_payload(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     vpn_ready = installed and logged_in
     mode_stale = mode == "tools_only" and vpn_ready
     profile = effective_install_profile(cfg)
+    ref_cfg = cfg.get("referral") if isinstance(cfg.get("referral"), dict) else {}
+    ref_enabled = bool(ref_cfg.get("enabled", True))
+    ref_url = str(ref_cfg.get("url") or "").strip()
     return {
         "ok": True,
         "mode": mode,
@@ -277,6 +284,10 @@ def usage_payload(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         "logged_in": logged_in,
         "vpn_ready": vpn_ready,
         "mode_stale": mode_stale,
+        "referral": {
+            "enabled": ref_enabled and bool(ref_url),
+            "url": ref_url if ref_enabled else "",
+        },
         "label": (
             "Network & Security only"
             if profile == "network"

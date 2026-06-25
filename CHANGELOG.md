@@ -16,4 +16,4 @@
 - Top bar IP chain: Home/Public + VPN + Mesh with travel-safe rules
 - Home ISP auto-learn per WiFi (`home_ip_cache.json`); `wifi.profiles` counts as home network
 - Split state API (`/api/state/app`, `/api/state/nord`, `/api/state/network`) for faster UI loads
-- **Planned:** install wizard design — [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md) (three install choices + post-install welcome wizard; not implemented)
+- Single-screen `./install.sh` (complete package) + dashboard setup wizard — [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md)

@@ -71,13 +71,12 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
             "title": "Getting started",
             "html": """
 <p><strong>nordctl</strong> is a free helper for NordVPN on Linux. Install Nord’s official client, log in once, then use one-click presets and the web dashboard.</p>
-<h4>Quick start (5 steps)</h4>
-<ol class="steps"><li><strong>Install nordctl</strong> — <code>pip install nordctl</code> or <code>./install.sh</code></li>
-<li><strong>Install &amp; login NordVPN</strong> — <code>nordctl install-nordvpn</code> then <code>nordvpn login</code></li>
-<li><strong>Initialize</strong> — <code>nordctl init</code> (creates config, minimal VPN profile)</li>
-<li><strong>Apply a preset</strong> — <code>nordctl apply streaming-smartdns</code> (or <code>--dry-run</code> first)</li>
-<li><strong>Open the UI</strong> — <code>nordctl serve</code> → http://127.0.0.1:8765/</li></ol>
+<h4>Quick start</h4>
+<ol class="steps"><li><strong>Install</strong> — clone the repo and run <code>./install.sh</code> (installs CLI, dashboard, config, and opens the UI)</li>
+<li><strong>Wizard</strong> — top bar <strong>Wizard</strong> or <code>#dashboard/wizard</code> for Nord login, WiFi, country, and your first preset</li>
+<li><strong>Connect</strong> — use a preset card or Connect on the dashboard</li></ol>
 <p>No Nord account yet? <code>nordctl demo</code> runs the UI with simulated VPN state.</p>
+<p class="muted-inline">Advanced: <code>pip install nordctl</code> then <code>nordctl init</code> and <code>nordctl service bootstrap</code> — see Help → Install nordctl.</p>
 <div class="tip"><strong>Tip:</strong> Ctrl+S saves in the editor. Ctrl+K opens the command palette. Theme toggle is in the top bar.</div>
 """,
         },
@@ -101,18 +100,19 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
         },
         {
             "id": "install-nordctl",
-            "title": "Install nordctl (PyPI or git)",
+            "title": "Install nordctl",
             "html": """
-<h4>PyPI (recommended)</h4>
-<pre class="code-block">pip install --user nordctl
-pip install 'nordctl[tray]'   # optional system tray
-nordctl init
-nordctl serve</pre>
-<h4>From git</h4>
+<h4>From git (recommended — complete package)</h4>
 <pre class="code-block">git clone https://github.com/G4EA5/nordctl.git
 cd nordctl
 ./install.sh</pre>
-<p><code>./install.sh</code> shows <strong>one screen</strong> — optional NordVPN client install, dashboard at login, and open browser when finished. No install-mode menu; WiFi and country are set in the dashboard Wizard after install.</p>
+<p><code>./install.sh</code> installs nordctl, presets, config, and the dashboard in one run. <strong>One screen</strong> — optional NordVPN client, dashboard at login, open browser. WiFi, country, and Nord login are in the dashboard <strong>Wizard</strong>, not the installer.</p>
+<h4>PyPI (manual — you start each step)</h4>
+<pre class="code-block">pip install --user nordctl
+pip install 'nordctl[tray]'   # optional system tray
+nordctl init
+nordctl service bootstrap   # or: nordctl serve
+nordctl install-nordvpn     # optional</pre>
 <h4>Other packages</h4>
 <ul class="steps"><li>Debian/Ubuntu: <code>bash scripts/build-deb.sh</code></li>
 <li>Arch: see <code>packaging/arch/PKGBUILD</code></li>

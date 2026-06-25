@@ -5077,8 +5077,48 @@
     b.className = "badge on";
   }
 
+  let termDeferRender = false;
+
+  function termScreenEl() {
+    return $("termScreen");
+  }
+
+  function termHasTextSelection() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return false;
+    const screen = termScreenEl();
+    if (!screen) return false;
+    const node = sel.anchorNode;
+    return !!(node && screen.contains(node));
+  }
+
+  function termCopySelection() {
+    const text = window.getSelection()?.toString() || "";
+    if (!text.trim()) return false;
+    navigator.clipboard?.writeText(text).then(
+      () => toast("Copied selection", true),
+      () => toast("Copy failed — try Copy output button", false),
+    );
+    return true;
+  }
+
+  function termSelectAllOutput() {
+    const screen = termScreenEl();
+    const sel = window.getSelection();
+    if (!screen || !sel) return;
+    const range = document.createRange();
+    range.selectNodeContents(screen);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   function termRenderActiveScreen() {
-    const screen = $("termScreen");
+    if (termHasTextSelection()) {
+      termDeferRender = true;
+      return;
+    }
+    termDeferRender = false;
+    const screen = termScreenEl();
     const sess = termGetActive();
     let display = "";
     if (sess) {
@@ -5637,7 +5677,22 @@
   }
 
   function termKeyToData(e) {
-    if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "c") return "\x03";
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === "c") {
+      if (termHasTextSelection()) {
+        e.preventDefault();
+        termCopySelection();
+        return null;
+      }
+      if (!e.ctrlKey || e.altKey) return null;
+      return "\x03";
+    }
+    if (mod && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      termSelectAllOutput();
+      return null;
+    }
+    if (mod && e.key.toLowerCase() === "v") return null;
     if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "d") return "\x04";
     if (e.ctrlKey && !e.altKey && e.key.toLowerCase() === "l") return "\x0c";
     if (e.key === "Enter") return "\n";
@@ -5688,10 +5743,23 @@
       const text = e.clipboardData?.getData("text") || "";
       if (text) termSendInput(text);
     });
-    vp.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      termFocusInput();
+    vp.addEventListener("mouseup", () => {
+      window.setTimeout(() => {
+        if (!termHasTextSelection()) termFocusInput();
+      }, 0);
     });
+    vp.addEventListener("dblclick", () => {
+      window.setTimeout(() => {
+        if (termHasTextSelection()) return;
+        termFocusInput();
+      }, 0);
+    });
+    if (!document.body.dataset.termSelectionInit) {
+      document.body.dataset.termSelectionInit = "1";
+      document.addEventListener("selectionchange", () => {
+        if (termDeferRender && !termHasTextSelection()) termRenderActiveScreen();
+      });
+    }
     if (typeof ResizeObserver !== "undefined") {
       termResizeObs = new ResizeObserver(() => { termResizeViewport(); });
       termResizeObs.observe(vp);
@@ -9985,6 +10053,33 @@
     el.classList.toggle("hidden", !on);
   }
 
+  function referralPreviewForced() {
+    try {
+      return new URLSearchParams(window.location.search).get("referral_preview") === "1";
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function renderReferralBanner(data) {
+    const el = $("referralBanner");
+    const link = $("referralBannerLink");
+    const preview = $("referralBannerPreview");
+    if (!el) return;
+    const usage = data?.usage || {};
+    const ref = usage.referral || {};
+    const previewOn = referralPreviewForced();
+    const url = String(ref.url || link?.getAttribute("href") || "").trim();
+    const refEnabled = ref.enabled !== false;
+    const enabled = !!url && (refEnabled || previewOn);
+    const loggedIn = !!(data?.nordvpn?.logged_in ?? usage.logged_in);
+    const demo = !!(data?.demo_mode || usage.demo_mode);
+    const show = enabled && !demo && (previewOn || !loggedIn);
+    el.classList.toggle("hidden", !show);
+    if (link && url) link.href = url;
+    if (preview) preview.classList.toggle("hidden", !previewOn);
+  }
+
   function renderPresetVerification(verification) {
     const panel = $("presetVerifyPanel");
     if (!panel) return;
@@ -10062,6 +10157,7 @@
     lastState = data;
     maybeAnnounceBaseline(data);
     renderDemoBanner(data);
+    renderReferralBanner(data);
     renderConnectionCore(data);
     try {
       if (data?.features) {

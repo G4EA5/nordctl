@@ -2516,6 +2516,42 @@ select option:hover {
   font-size: 0.9rem;
 }
 .demo-banner.hidden { display: none; }
+.referral-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem 0.75rem;
+  margin: 0.45rem 0.75rem 0;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(110, 231, 183, 0.08);
+  border: 1px solid rgba(110, 231, 183, 0.28);
+  color: var(--text);
+  font-size: 0.88rem;
+  text-align: center;
+}
+.referral-banner.hidden { display: none; }
+.referral-banner-text { color: var(--muted); }
+.referral-banner-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+.referral-banner-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  opacity: 0.85;
+}
+.referral-banner-preview {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+}
+.referral-banner-preview.hidden { display: none; }
 .preset-verify-panel {
   margin: 0.65rem 0;
   padding: 0.75rem 1rem;
@@ -6263,14 +6299,13 @@ button.jump-link:not(.btn) {
   background: transparent;
   color: transparent;
   caret-color: transparent;
-  z-index: 2;
+  z-index: 1;
   font: inherit;
   line-height: inherit;
 }
 .term-screen {
   position: relative;
-  z-index: 1;
-  pointer-events: none;
+  z-index: 2;
   margin: 0;
   font-family: var(--mono);
   font-size: 0.78rem;
@@ -6278,6 +6313,9 @@ button.jump-link:not(.btn) {
   color: #e6edf3;
   white-space: pre-wrap;
   word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
 }
 .term-post-install {
   margin: 0.65rem 0 0.35rem;

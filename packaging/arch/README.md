@@ -7,6 +7,6 @@ Community-maintained PKGBUILD for [AUR](https://wiki.archlinux.org/title/AUR).
 2. Update `pkgver`, `source` URL, and `sha256sums` for the release tarball  
 3. Run `makepkg -si`  
 
-Official install for most users: `pip install nordctl` or `./install.sh` from the repo.
+Official install for most users: `./install.sh` from the repo (complete package). PyPI is for manual step-by-step installs.
 
 See also `scripts/build-deb.sh` for Debian/Ubuntu `.deb` packages.
