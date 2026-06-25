@@ -12,6 +12,8 @@ bash scripts/selftest.sh
 
 The audit blocks personal hostnames, environment-specific subnets, custom UI ports, and old branded example preset names.
 
+**Personal blocklist** (your username, SSID, LAN, custom port) lives in `scripts/audit-private-patterns.local` — copy from `audit-private-patterns.local.example`. That file is **gitignored** and never published. Only generic patterns ship in `audit-public.sh`.
+
 **Your real config is never in the repo** — it lives only in `~/.config/nordctl/`. Do not commit `config.yaml` from your home directory.
 
 ## 2. Replace placeholders

@@ -8,31 +8,20 @@ cd "$ROOT"
 FAIL=0
 red() { echo "BLOCKED: $*" >&2; FAIL=1; }
 
-# Optional local blocklist — see audit-private-patterns.local.example
-PATTERNS=(
+# No committed blocklist — add your own patterns in audit-private-patterns.local (gitignored).
+PATTERNS=()
 
+LOCAL_PAT_FILE="$ROOT/scripts/audit-private-patterns.local"
+if [[ -f "$LOCAL_PAT_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" ]] && continue
+    PATTERNS+=("$line")
+  done <"$LOCAL_PAT_FILE"
+fi
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-)
-
-# Search tracked-ish source only (not .venv, not user home config)
 SEARCH_PATHS=(
   README.md
   OPEN_SOURCE.md
@@ -51,9 +40,9 @@ SEARCH_PATHS=(
 
 for pat in "${PATTERNS[@]}"; do
   if command -v rg >/dev/null 2>&1; then
-    hits=$(rg -i -n "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | rg -v 'audit-public\.sh|PUBLISH_CHECKLIST\.md' || true)
+    hits=$(rg -i -n "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | rg -v 'audit-public\.sh|audit-private-patterns|PUBLISH_CHECKLIST\.md' || true)
   else
-    hits=$(grep -RIn -i -E "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | grep -v 'audit-public\.sh\|PUBLISH_CHECKLIST\.md' || true)
+    hits=$(grep -RIn -i -E "$pat" "${SEARCH_PATHS[@]}" 2>/dev/null | grep -v 'audit-public\.sh\|audit-private-patterns\|PUBLISH_CHECKLIST\.md' || true)
   fi
   if [[ -n "$hits" ]]; then
     echo "$hits"
@@ -61,7 +50,7 @@ for pat in "${PATTERNS[@]}"; do
   fi
 done
 
-# Real-looking public IPs in demo code should use RFC 5737 documentation ranges only
+# Demo IPs must use RFC 5737 documentation ranges only
 if command -v rg >/dev/null 2>&1; then
   demo_hits=$(rg -n '89\.187\.|185\.230\.|103\.86\.96\.100' nordctl/demo_mode.py 2>/dev/null || true)
 else

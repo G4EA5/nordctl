@@ -17,3 +17,4 @@ config.yaml
 **/support/
 **/exports/
 home_ip_cache.json
+scripts/audit-private-patterns.local

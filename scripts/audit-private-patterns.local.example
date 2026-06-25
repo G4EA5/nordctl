@@ -1,0 +1,10 @@
+# Copy to audit-private-patterns.local (gitignored). One extended-regex pattern per line.
+#
+#   cp scripts/audit-private-patterns.local.example scripts/audit-private-patterns.local
+#
+# Examples (replace with yours — these lines are placeholders only):
+# your_username
+# your\.vpn\.hostname
+# 192\.168\.x\.
+# 12345
+# Your_WiFi_SSID
