@@ -16,7 +16,7 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
 <table class="help-table"><tr><th>Top menu</th><th>What it opens</th></tr>
 <tr><td><strong>Nord Dashboard</strong></td><td>VPN connect, presets, switches, Nord DNS, Nord shell, Nord doctor, Nord services</td></tr>
 <tr><td><strong>Wizard</strong></td><td>Inline setup — install NordVPN, checklist, quick or full walkthrough (<code>#dashboard/wizard</code>)</td></tr>
-<tr><td><strong>Networking</strong></td><td>WiFi, traffic maps, routes &amp; DNS, diagnostics shell, networking apt packages, UI services</td></tr>
+<tr><td><strong>Networking</strong></td><td>WiFi, traffic maps, live bandwidth, <strong>WiFi spectrum</strong>, Bluetooth spectrum, routes &amp; DNS, diagnostics shell, networking apt packages, UI services</td></tr>
 <tr><td><strong>Security</strong></td><td>Health overview, doctors, leak tests, privacy audit, Linux UFW, security apt packages, sudo privileges</td></tr>
 <tr><td><strong>Tools</strong></td><td>Activity log, automate, schedules, rollback, config editor</td></tr>
 <tr><td><strong>Help</strong></td><td>This guide — one topic per sidebar item</td></tr></table>
@@ -54,6 +54,8 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
 <tr><td>See what nordctl changed</td><td>Tools → <strong>Activity log</strong></td></tr>
 <tr><td>Undo a bad change</td><td>Tools → <strong>Rollback</strong> (full baseline) or <strong>Nord snapshots</strong> (Nord settings only)</td></tr>
 <tr><td>Traffic / bandwidth</td><td>Networking → <strong>Internet traffic</strong>, <strong>Live bandwidth</strong>, or <strong>Speed test</strong></td></tr>
+<tr><td>WiFi channel scan</td><td>Networking → <strong>WiFi spectrum</strong> — band toggles, SSID buttons, rescan</td></tr>
+<tr><td>Bluetooth nearby devices</td><td>Networking → <strong>Bluetooth spectrum</strong></td></tr>
 <tr><td>Dashboard password &amp; alerts</td><td>⚙ → General / Alerts settings</td></tr></table>
 <h4>Common journeys</h4>
 <ol class="steps"><li><strong>First-time Nord setup</strong> — top bar <strong>Wizard</strong> → Nord shell login → Connect → apply a preset from My presets.</li>
@@ -110,6 +112,7 @@ nordctl serve</pre>
 <pre class="code-block">git clone https://github.com/G4EA5/nordctl.git
 cd nordctl
 ./install.sh</pre>
+<p><code>./install.sh</code> shows <strong>one screen</strong> — optional NordVPN client install, dashboard at login, and open browser when finished. No install-mode menu; WiFi and country are set in the dashboard Wizard after install.</p>
 <h4>Other packages</h4>
 <ul class="steps"><li>Debian/Ubuntu: <code>bash scripts/build-deb.sh</code></li>
 <li>Arch: see <code>packaging/arch/PKGBUILD</code></li>
@@ -306,8 +309,9 @@ nordctl logs --category dns -n 20</pre>
             "id": "onboarding",
             "title": "First install & setup wizard",
             "html": """
-<p>On first open you can use the inline <strong>setup wizard</strong> — one step at a time, with Skip on every optional step. Open it anytime from the top bar <strong>Wizard</strong> button or <code>#dashboard/wizard</code> (runs on the page, not a popup).</p>
-<h4>Wizard steps</h4>
+<p><strong>Install (<code>./install.sh</code>)</strong> — one checklist screen: optional NordVPN client, start dashboard at login, open browser when done. Everything else is in the dashboard.</p>
+<p><strong>Dashboard wizard</strong> — open from the top bar <strong>Wizard</strong> button or <code>#dashboard/wizard</code> (inline page, not a popup). Walk through optional steps with Skip on each screen.</p>
+<h4>Wizard steps (in-app)</h4>
 <ul class="steps"><li>Welcome &amp; legal</li>
 <li>NordVPN install, login &amp; nordvpnd</li>
 <li>Sudo / UI privileges</li>
@@ -315,11 +319,10 @@ nordctl logs --category dns -n 20</pre>
 <li>IPv6, UFW, browser &amp; email alerts</li>
 <li>Install baseline &amp; first VPN connect</li>
 <li>Optional apt security/network tools</li></ul>
-<p>Install itself stays minimal — run <code>./install.sh</code> or <code>pip install</code>, then <code>nordctl serve</code>. Details you used to hunt in Help are in the wizard instead.</p>
 <pre class="code-block">./install.sh
 nordctl serve
-# → click top bar Wizard or open #dashboard/wizard</pre>
-<div class="tip">After the wizard, use <strong>Nord doctor</strong> and <strong>Nord services</strong> sub-tabs for ongoing NordVPN health and daemon control. The wizard page keeps the live install checklist on the left.</div>
+# → top bar Wizard or #dashboard/wizard</pre>
+<div class="tip">After the wizard, use <strong>Nord doctor</strong> and <strong>Nord services</strong> for ongoing NordVPN health. The wizard page keeps the live install checklist on the left.</div>
 """,
         },
         {
@@ -429,6 +432,19 @@ nordctl security --json</pre>
 nordctl traffic --filter vpn
 nordctl traffic --filter direct</pre>
 <div class="tip">If VPN is ON and you see many “direct” connections, open the Lab tab and run leak tests.</div>
+""",
+        },
+        {
+            "id": "wifi-spectrum",
+            "title": "WiFi &amp; Bluetooth spectrum",
+            "html": """
+<p><strong>WiFi spectrum</strong> (<code>#networking/spectrum-analyzer</code>) charts channel occupancy and signal strength across 2.4 / 5 / 6 GHz.</p>
+<ul class="steps"><li><strong>Band switches</strong> — focus on 2.4 GHz, UNII-1, DFS, UNII-3, or 6 GHz slices.</li>
+<li><strong>SSID buttons</strong> — every scanned network; click to centre the chart on that AP (dual-band SSIDs group together).</li>
+<li><strong>Scan table</strong> — click a row to jump the chart; colours match the curves.</li>
+<li><strong>Rescan WiFi</strong> — refreshes NetworkManager data; on some adapters also restarts NetworkManager so 2.4 GHz APs appear while connected on 5 GHz.</li></ul>
+<p><strong>Bluetooth spectrum</strong> (<code>#networking/bluetooth-spectrum</code>) shows 2.4 GHz ISM activity, BLE channels, nearby devices, and basic security notes (discoverable mode, pairing).</p>
+<div class="tip">If the chart looks empty, enable at least one band above the chart and press <strong>Rescan WiFi</strong>.</div>
 """,
         },
         {
@@ -858,6 +874,7 @@ SECTION_AUDIENCE: dict[str, str] = {
     "wifi-hub": "network",
     "security-hub": "network",
     "traffic": "network",
+    "wifi-spectrum": "network",
     "network": "network",
     "sudo": "network",
     "troubleshoot": "all",

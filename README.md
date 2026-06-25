@@ -54,6 +54,64 @@ nordctl wraps the official NordVPN client — it does not replace your subscript
 
 ---
 
+## Screenshots
+
+UI captures from demo mode where possible ([full gallery](docs/screenshots/README.md)).
+
+### Nord Dashboard
+
+| Connect | Switches | Workflows |
+|:---:|:---:|:---:|
+| ![Connect](docs/screenshots/01-dashboard-connect.png) | ![Switches](docs/screenshots/02-dashboard-switches.png) | ![Workflows](docs/screenshots/03-dashboard-workflows.png) |
+
+| Meshnet | Nord shell | Scenario presets |
+|:---:|:---:|:---:|
+| ![Meshnet](docs/screenshots/04-dashboard-meshnet.png) | ![Nord shell](docs/screenshots/05-dashboard-terminal-nord.png) | ![Scenario presets](docs/screenshots/06-dashboard-scenario-presets.png) |
+
+| Favorites |
+|:---:|
+| ![Favorites](docs/screenshots/07-dashboard-favorites.png) |
+
+### Networking
+
+| WiFi | Internet traffic | Local traffic |
+|:---:|:---:|:---:|
+| ![WiFi](docs/screenshots/10-networking-wifi.png) | ![Internet traffic](docs/screenshots/11-networking-internet-traffic.png) | ![Local traffic](docs/screenshots/12-networking-local-traffic.png) |
+
+| Live bandwidth | Speed test | Routes & DNS |
+|:---:|:---:|:---:|
+| ![Live bandwidth](docs/screenshots/13-networking-live-bandwidth.png) | ![Speed test](docs/screenshots/14-networking-speed-test.png) | ![Routes and DNS](docs/screenshots/15-networking-routes-dns.png) |
+
+| Services | Packages | WiFi spectrum |
+|:---:|:---:|:---:|
+| ![Services](docs/screenshots/16-networking-services.png) | ![Packages](docs/screenshots/17-networking-packages.png) | ![Spectrum](docs/screenshots/18-networking-spectrum.png) |
+
+### Security
+
+| Overview | Doctors | Leak tests |
+|:---:|:---:|:---:|
+| ![Security overview](docs/screenshots/20-security-overview.png) | ![Doctors](docs/screenshots/21-security-doctors.png) | ![Leak tests](docs/screenshots/22-security-leak-tests.png) |
+
+| Audit | UFW | Packages |
+|:---:|:---:|:---:|
+| ![Audit](docs/screenshots/23-security-audit.png) | ![UFW](docs/screenshots/24-security-ufw.png) | ![Security packages](docs/screenshots/25-security-packages.png) |
+
+| Privileges |
+|:---:|
+| ![Privileges](docs/screenshots/26-security-privileges.png) |
+
+### Tools, Help & Settings
+
+| Guide | Logs | Editor |
+|:---:|:---:|:---:|
+| ![Tools guide](docs/screenshots/30-tools-guide.png) | ![Logs](docs/screenshots/31-tools-logs.png) | ![Editor](docs/screenshots/32-tools-editor.png) |
+
+| Help | Settings |
+|:---:|:---:|
+| ![Help](docs/screenshots/40-help.png) | ![Settings](docs/screenshots/41-settings-general.png) |
+
+---
+
 ## Install
 
 ### PyPI (recommended)
@@ -102,13 +160,14 @@ flowchart LR
 
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/openapi.yaml](docs/openapi.yaml) · Hooks: [docs/HOOKS.md](docs/HOOKS.md)
 
-**Planned first-run UX:** minimal install choice (Nord focus / Network & Security / nordctl only), then a dashboard **welcome wizard** for WiFi, country, and the rest — see [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md) (design only; not built yet).
+**First run:** `./install.sh` shows one optional checklist (NordVPN client, dashboard at login, open browser). WiFi, country, Nord login, and presets are in the dashboard **Wizard** (`#dashboard/wizard`) — see [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md).
 
 ---
 
 ## Features (v0.2)
 
 - **Dashboard** — presets, Smart DNS hub, setup wizard, doctor
+- **Networking** — WiFi hub, traffic maps, live bandwidth, **WiFi spectrum** (band filters + SSID picker), Bluetooth spectrum
 - **Lab** — leak tests, network audit, anonymized support bundle
 - **Automate** — WiFi zones, schedules, snapshots, [preset hooks](docs/HOOKS.md)
 - **Connection journal** — `nordctl journal` / `GET /api/journal`

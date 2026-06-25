@@ -799,6 +799,8 @@
     "network/traffic": { title: "Internet traffic", text: "Outbound and inbound internet sessions from this PC — WAN stats, feeds, and connection tables.", help: "traffic" },
     "network/traffic/internet": { title: "Internet traffic", text: "Outbound and inbound internet sessions from this PC — WAN stats, feeds, and connection tables.", help: "traffic" },
     "network/traffic/local": { title: "Local traffic", text: "LAN and Meshnet sessions — connection path, peers, and local listen sockets.", help: "traffic" },
+    "network/spectrum-analyzer": { title: "WiFi spectrum", text: "Channel chart across 2.4 / 5 / 6 GHz — band toggles, SSID buttons, and rescan.", help: "wifi-spectrum" },
+    "network/bluetooth-spectrum": { title: "Bluetooth spectrum", text: "2.4 GHz ISM activity, BLE channels, nearby devices, and security notes.", help: "wifi-spectrum" },
     "network/services": { title: "Services", text: "nordctl web UI, LAN access, and login autostart. nordvpnd and tray are on Nord Dashboard → Nord services.", help: "services" },
     "network/diagnostics": { title: "Diagnostics", text: "Privacy audit, read-only network tools, and an interactive shell for sudo and installs — use Checks or Shell below.", help: "network" },
     "network/install-tools": { title: "Networking packages", text: "Networking apt packages moved under Networking → Networking packages; security packages under Security → Security packages.", help: "network-tools-install" },
@@ -1161,9 +1163,9 @@
     ],
     "network/spectrum-analyzer": [
       "<strong>WiFi spectrum</strong> — channel occupancy and signal strength across 2.4 / 5 / 6 GHz bands.",
-      "Toggle <strong>frequency band switches</strong> to focus on UNII-1, DFS, or 6 GHz slices.",
-      "Each network appears as a smooth signal curve with its SSID labeled at the peak (dBm scale).",
-      "Click <strong>Rescan WiFi</strong> to refresh NetworkManager scan data before reading the chart.",
+      "Toggle <strong>band switches</strong> above the chart; use <strong>SSID buttons</strong> or table rows to centre on a network.",
+      "Dual-band SSIDs (e.g. <code>Name</code> + <code>Name_5G</code>) share one button when grouped.",
+      "<strong>Rescan WiFi</strong> refreshes scan data — restarts NetworkManager when needed for full 2.4 GHz visibility.",
     ],
     "network/bluetooth-spectrum": [
       "<strong>Bluetooth spectrum</strong> — 2.4 GHz ISM activity shared with WiFi; BLE channel occupancy and nearby devices.",
