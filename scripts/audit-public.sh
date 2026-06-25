@@ -35,7 +35,6 @@ PATTERNS=(
 # Search tracked-ish source only (not .venv, not user home config)
 SEARCH_PATHS=(
   README.md
-  CHANGELOG.md
   OPEN_SOURCE.md
   LEGAL.md
   config.example.yaml

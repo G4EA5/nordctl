@@ -25,7 +25,6 @@ ROOT_FILES = (
     ROOT / "install.sh",
     ROOT / "config.example.yaml",
     ROOT / "README.md",
-    ROOT / "CHANGELOG.md",
     ROOT / "OPEN_SOURCE.md",
     ROOT / "LEGAL.md",
     ROOT / "pyproject.toml",

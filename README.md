@@ -252,4 +252,4 @@ nordctl serve
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Changelog: [CHANGELOG.md](CHANGELOG.md).
+MIT — see [LICENSE](LICENSE). Forking & attribution: [OPEN_SOURCE.md](OPEN_SOURCE.md).

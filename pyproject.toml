@@ -37,7 +37,7 @@ Homepage = "https://github.com/G4EA5/nordctl"
 Documentation = "https://github.com/G4EA5/nordctl#readme"
 Repository = "https://github.com/G4EA5/nordctl"
 Issues = "https://github.com/G4EA5/nordctl/issues"
-Changelog = "https://github.com/G4EA5/nordctl/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/G4EA5/nordctl/releases"
 
 [tool.setuptools.packages.find]
 where = ["."]

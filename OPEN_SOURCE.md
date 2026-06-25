@@ -9,6 +9,16 @@
 - There are **no proprietary blobs**, hidden analytics SDKs, or vendor lock-in in this repository.
 - Dependencies are declared in `pyproject.toml` (core: PyYAML only; optional tray: pystray + Pillow).
 
+## Forking & attribution
+
+The MIT License lets you use, modify, and redistribute nordctl **without asking first**, as long as you **keep the copyright notice and LICENSE** in copies or substantial portions of the code.
+
+**G4EA5** is the copyright holder. The author would like that name (and a link to [this repository](https://github.com/G4EA5/nordctl)) to stay visible when you share or ship nordctl — in `LICENSE`, README, or “About” text — rather than presenting the project as unrelated original work.
+
+If you plan to **mirror the whole project**, **rebrand it**, or **distribute a packaged build** under another name, a quick message on [GitHub Issues](https://github.com/G4EA5/nordctl/issues) first is appreciated. That is **courtesy, not a license requirement**; MIT does not give anyone exclusive control over forks. It just helps avoid surprise clones and keeps credit clear.
+
+Small personal patches, forks, and pull requests back upstream are always welcome — no need to ask for those.
+
 ## Verify for yourself
 
 ```bash

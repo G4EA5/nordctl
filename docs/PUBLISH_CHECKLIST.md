@@ -36,7 +36,7 @@ Add `docs/screenshots/` with demo mode (`nordctl demo`) — no real IPs or SSIDs
 - Add repository description + topics: `nordvpn`, `linux`, `vpn`, `smart-dns`
 - Enable GitHub Actions
 - Configure PyPI trusted publishing for the release workflow
-- Add `LICENSE`, `CHANGELOG.md` (done)
+- Add `LICENSE` (done); add `CHANGELOG.md` at first public release
 
 ## 6. Before installer discussion
 
