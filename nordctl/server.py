@@ -299,6 +299,14 @@ class NordctlHandler(BaseHTTPRequestHandler):
 
             self._json(200, host_status_payload(load_config()))
             return
+        if path == "/api/pc-info":
+            from nordctl.pc_info import pc_info_payload
+            from urllib.parse import parse_qs
+
+            qs = parse_qs(urlparse(self.path).query)
+            force = (qs.get("force") or [""])[0].strip().lower() in ("1", "true", "yes")
+            self._json(200, pc_info_payload(force=force))
+            return
         if path == "/api/traffic":
             from urllib.parse import parse_qs
 

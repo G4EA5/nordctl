@@ -12,7 +12,7 @@ from typing import Any
 
 from nordctl.config import load_config, save_config
 from nordctl.paths import resolve_nordctl_bin
-from nordctl.ports import is_port_free
+from nordctl.ports import detect_nordctl_listen, is_port_free
 
 UI_UNIT = "nordctl-ui.service"
 NORD_UNIT = "nordvpnd.service"
@@ -213,6 +213,12 @@ def ui_service_status(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     st = _unit_state(UI_UNIT, user=True)
     manual = _manual_serve_pids()
     installed = ui_unit_path().is_file()
+    bind, configured_port = _server_bind_port(cfg)
+    configured_url = _dashboard_url(cfg)
+    live = detect_nordctl_listen()
+    live_url = f"http://{live[0]}:{live[1]}/" if live else None
+    url = live_url or configured_url
+    port_mismatch = bool(live and live[1] != configured_port)
     return {
         "unit": UI_UNIT,
         "installed": installed,
@@ -223,7 +229,11 @@ def ui_service_status(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         "manual_pids": manual,
         "manual_running": bool(manual),
         "unit_path": str(ui_unit_path()),
-        "url": _dashboard_url(cfg),
+        "url": url,
+        "configured_url": configured_url,
+        "configured_port": configured_port,
+        "live_port": live[1] if live else None,
+        "port_mismatch": port_mismatch,
         "exec_hint": f"{_nordctl_bin()} serve",
     }
 
@@ -263,10 +273,121 @@ def service_overview(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     }
 
 
+def _start_background_serve(bind: str, port: int) -> bool:
+    bin_path = _nordctl_bin()
+    log_path = Path.home() / ".local/share/nordctl/serve.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    script = (
+        f"nohup {bin_path} serve --bind {bind} --port {port} "
+        f">>{log_path} 2>&1 &"
+    )
+    return _spawn_detached(["bash", "-c", script])
+
+
+def _probe_ui_url(url: str, *, seconds: float = 15.0) -> bool:
+    import time
+    import urllib.error
+    import urllib.request
+
+    probe = url.rstrip("/") + "/api/state/quick"
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(probe, timeout=2.0) as resp:
+                if resp.status == 200:
+                    return True
+        except (urllib.error.URLError, TimeoutError, OSError):
+            time.sleep(0.45)
+    return False
+
+
+def bootstrap_ui_service(
+    cfg: dict[str, Any] | None = None,
+    *,
+    enable: bool = True,
+    wait_seconds: float = 18.0,
+) -> dict[str, Any]:
+    """Install/start the dashboard after setup — free a port, start UI, wait until it responds."""
+    from nordctl.config import ensure_server_port
+
+    cfg = cfg or load_config()
+    notes: list[str] = []
+
+    if shutil.which("systemctl"):
+        _systemctl_user("stop", UI_UNIT)
+    stop_manual_serve_processes()
+
+    port, replaced = ensure_server_port(cfg, update_config=True)
+    if replaced is not None:
+        notes.append(f"Port {replaced} was in use — dashboard will use {port}")
+    bind, _ = _server_bind_port(cfg)
+    _wait_port_free(bind, port, seconds=5.0)
+
+    method = "manual"
+    systemd_ok = False
+    if shutil.which("systemctl"):
+        install_r = install_ui_service(cfg, enable=enable)
+        if install_r.get("ok"):
+            active = _systemctl_user("is-active", UI_UNIT)
+            if active.get("ok") and (active.get("output") or "").strip() == "active":
+                method = "systemd"
+                systemd_ok = True
+            else:
+                notes.append("systemd unit did not become active — starting background serve")
+        else:
+            err = install_r.get("error") or "systemd install failed"
+            notes.append(str(err))
+
+    if not systemd_ok:
+        if not _wait_port_free(bind, port, seconds=3.0):
+            port, replaced2 = ensure_server_port(cfg, update_config=True)
+            if replaced2 is not None:
+                notes.append(f"Port {replaced2} still busy — switched to {port}")
+            bind, _ = _server_bind_port(cfg)
+            _wait_port_free(bind, port, seconds=3.0)
+        if not _start_background_serve(bind, port):
+            return {
+                "ok": False,
+                "port": port,
+                "url": _dashboard_url(cfg),
+                "method": method,
+                "notes": notes,
+                "error": "Could not start background nordctl serve",
+            }
+
+    url = _dashboard_url(cfg)
+    ready = _probe_ui_url(url, seconds=wait_seconds)
+    return {
+        "ok": ready,
+        "ready": ready,
+        "port": port,
+        "url": url,
+        "method": method,
+        "port_replaced": replaced,
+        "notes": notes,
+        "error": None
+        if ready
+        else (
+            f"Dashboard did not respond at {url} within {int(wait_seconds)}s. "
+            f"Check ~/.local/share/nordctl/serve.log or run: {_nordctl_bin()} service bootstrap"
+        ),
+    }
+
+
 def install_ui_service(cfg: dict[str, Any] | None = None, *, enable: bool = True) -> dict[str, Any]:
     cfg = cfg or load_config()
     if not shutil.which("systemctl"):
         return {"ok": False, "error": "systemctl not found"}
+    from nordctl.config import ensure_server_port
+
+    stop_manual_serve_processes()
+    port, replaced = ensure_server_port(cfg, update_config=True)
+    if replaced is not None:
+        srv = cfg.setdefault("server", {})
+        srv["port"] = port
+        save_config(cfg)
+    bind, _ = _server_bind_port(cfg)
+    _wait_port_free(bind, port, seconds=5.0)
     path = write_ui_unit(cfg)
     steps = [_systemctl_user("daemon-reload")]
     if enable:

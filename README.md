@@ -71,8 +71,8 @@ nordctl serve
 ```bash
 git clone https://github.com/G4EA5/nordctl.git
 cd nordctl
-./install.sh
-# optional: ./install.sh --install-nordvpn
+sh install.sh          # or ./install.sh — both work on Ubuntu (dash + bash)
+# optional: sh install.sh --install-nordvpn
 ```
 
 ### Packaging

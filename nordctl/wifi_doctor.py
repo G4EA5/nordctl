@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 from nordctl.config import load_config
+from nordctl.network_linux import _scan_missing_2g, wifi_scan
 
 
 def _check(
@@ -67,6 +68,24 @@ def run_wifi_doctor(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Connected to {conn.get('ssid') or '—'}" if conn.get("connected") else "Not connected to WiFi",
             fix=["Connect to a network in system settings, then refresh"],
             severity="info",
+        )
+    )
+
+    scan_rows = wifi_scan(conn.get("device")) if conn.get("device") else []
+    scan_thin = bool(conn.get("device")) and _scan_missing_2g(scan_rows)
+    checks.append(
+        _check(
+            "wifi_dualband_scan",
+            not scan_thin,
+            "WiFi scan lists 2.4 GHz networks"
+            if not scan_thin
+            else "Scan looks 5 GHz-only — 2.4 GHz SSIDs (e.g. C1) may be missing from the desktop list",
+            fix=[
+                "WiFi tab → Rescan (restarts NetworkManager when needed)",
+                "Or run: sudo systemctl restart NetworkManager",
+            ],
+            severity="warning" if scan_thin else "info",
+            action="wifi_rescan",
         )
     )
     checks.append(

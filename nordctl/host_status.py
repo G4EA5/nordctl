@@ -86,6 +86,22 @@ def _read_uptime_sec() -> float | None:
         return None
 
 
+def _read_cpu_temp_c() -> float | None:
+    """Best-effort CPU temperature in °C via Linux thermal sysfs."""
+    try:
+        zones = sorted(Path("/sys/class/thermal").glob("thermal_zone*/temp"))
+        for zone in zones:
+            raw = zone.read_text(encoding="utf-8").strip()
+            if not raw.isdigit():
+                continue
+            val = int(raw)
+            if val > 0:
+                return round(val / 1000, 1)
+    except OSError:
+        pass
+    return None
+
+
 def _ufw_summary() -> dict[str, Any]:
     try:
         from nordctl.ufw_control import ufw_status
@@ -139,11 +155,13 @@ def host_status_payload(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     hostname = socket.gethostname().split(".")[0] or "host"
 
     load_pct = round(100 * load1 / cores, 0) if cores else None
+    cpu_temp_c = _read_cpu_temp_c()
     payload: dict[str, Any] = {
         "ok": True,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(now)),
         "hostname": hostname,
         "uptime_sec": uptime,
+        "cpu_temp_c": cpu_temp_c,
         "load": {"1m": load1, "5m": load5, "15m": load15, "cores": cores, "pct": load_pct},
         "memory": mem,
         "swap": _read_swap(),

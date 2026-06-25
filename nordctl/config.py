@@ -11,7 +11,12 @@ from typing import Any
 
 import yaml
 
-from nordctl.ports import DEFAULT_UI_PORT, find_free_port, is_port_free
+from nordctl.ports import (
+    DEFAULT_UI_PORT,
+    find_free_port,
+    is_port_available_for_nordctl,
+    is_port_free,
+)
 
 DEFAULTS: dict[str, Any] = {
     "nordvpn_bin": "nordvpn",
@@ -347,7 +352,14 @@ def ensure_server_port(cfg: dict[str, Any] | None = None, *, update_config: bool
     host = str(srv.get("bind") or "127.0.0.1")
     current = int(srv.get("port") or DEFAULT_UI_PORT)
 
-    if is_port_free(host, current):
+    try:
+        from nordctl.service_mgr import stop_manual_serve_processes
+
+        stop_manual_serve_processes()
+    except Exception:
+        pass
+
+    if is_port_available_for_nordctl(host, current):
         return current, None
 
     free = find_free_port(host, DEFAULT_UI_PORT)

@@ -288,7 +288,7 @@ def wifi_scan(device: str | None, *, limit: int = 15) -> list[dict[str, Any]]:
         return []
     nets: list[dict[str, Any]] = []
     for line in r["output"].splitlines():
-        parts = line.split(":")
+        parts = split_nmcli_terse(line)
         if len(parts) < 8:
             continue
         ssid = parts[1] or "(hidden)"
@@ -305,11 +305,69 @@ def wifi_scan(device: str | None, *, limit: int = 15) -> list[dict[str, Any]]:
     return nets
 
 
+def _wifi_channel_band(channel: str | int | None) -> str | None:
+    if channel is None:
+        return None
+    raw = str(channel).strip()
+    if not raw.isdigit():
+        return None
+    ch = int(raw)
+    if 1 <= ch <= 14:
+        return "2g"
+    if ch >= 36:
+        return "5g"
+    return None
+
+
+def _scan_missing_2g(nets: list[dict[str, Any]]) -> bool:
+    """True when scan looks 5 GHz-only (common with Broadcom wl while on 5G)."""
+    if not nets:
+        return True
+    bands = {_wifi_channel_band(n.get("channel")) for n in nets}
+    bands.discard(None)
+    return "2g" not in bands
+
+
+def _passwordless_nm_restart() -> dict[str, Any]:
+    return run_cmd(["sudo", "-n", "systemctl", "restart", "NetworkManager"], timeout=20)
+
+
 def rescan_wifi(device: str | None) -> dict[str, Any]:
     dev = detect_wifi_device(device)
     if not dev:
         return {"ok": False, "error": "no wifi device"}
-    return run_cmd(["nmcli", "dev", "wifi", "rescan", "ifname", dev], timeout=15)
+
+    r = run_cmd(["nmcli", "dev", "wifi", "rescan", "ifname", dev], timeout=15)
+    nets = wifi_scan(device, limit=50)
+    if r["ok"] and not _scan_missing_2g(nets):
+        return {**r, "method": "nmcli_rescan", "network_count": len(nets)}
+
+    restart = _passwordless_nm_restart()
+    if restart["ok"]:
+        time.sleep(7)
+        nets = wifi_scan(device, limit=50)
+        return {
+            "ok": True,
+            "method": "nm_restart",
+            "output": "Restarted NetworkManager for a full dual-band WiFi scan.",
+            "network_count": len(nets),
+            "has_2g": not _scan_missing_2g(nets),
+            "prior_rescan": r.get("output") or "",
+        }
+
+    out = (r.get("output") or restart.get("output") or "").strip()
+    return {
+        **r,
+        "ok": r["ok"],
+        "method": "nmcli_rescan",
+        "network_count": len(nets),
+        "has_2g": not _scan_missing_2g(nets),
+        "hint": (
+            "2.4 GHz networks may be hidden until NetworkManager restarts "
+            "(sudo systemctl restart NetworkManager)."
+        ),
+        "output": out,
+    }
 
 
 def delete_wifi_connection(name: str) -> dict[str, Any]:

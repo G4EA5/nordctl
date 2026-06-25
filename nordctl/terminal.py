@@ -383,6 +383,7 @@ def _nord_quick_commands(bin_path: str) -> list[dict[str, Any]]:
         {"label": "nordvpnd restart", "cmd": "sudo systemctl restart nordvpnd\n", "sudo": True, "scope": "nord"},
         {"label": "snapshots", "cmd": f"{b} snapshot list\n", "scope": "nord"},
         {"label": "install nordvpn (preview)", "cmd": f"{b} install-nordvpn --dry-run\n", "scope": "nord"},
+        {"label": "install nordvpn", "cmd": f"{b} install-nordvpn\n", "sudo": True, "scope": "nord"},
     ]
 
 

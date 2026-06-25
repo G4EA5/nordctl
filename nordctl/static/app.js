@@ -70,7 +70,7 @@
   const SETUP_DISMISS_KEY = "nordctl_optional_setup_dismiss";
   const DASH_SUBNAV_REV = 9;
   const HUB_SUBNAV_REV = 4;
-  const TOOLS_SUBNAV_REV = 1;
+  const TOOLS_SUBNAV_REV = 3;
   const DASH_SUBNAV_REV_KEY = "nordctl_dash_subnav_rev";
   const HUB_SUBNAV_REV_KEY = "nordctl_hub_subnav_rev";
   const TOOLS_SUBNAV_REV_KEY = "nordctl_tools_subnav_rev";
@@ -411,10 +411,10 @@
   };
 
   const QUICK_START = [
-    { preset: "reconnect-country", icon: "🏠", labelKey: "quick.home", descKey: "quick.homeDesc" },
-    { preset: "streaming-smartdns", icon: "📡", labelKey: "quick.stream", descKey: "quick.streamDesc" },
-    { preset: "public-wifi", icon: "☕", labelKey: "quick.public", descKey: "quick.publicDesc" },
-    { preset: "privacy-max", icon: "🔒", labelKey: "quick.privacy", descKey: "quick.privacyDesc" },
+    { preset: "reconnect-country", icon: "🏠", label: "Reconnect (country)", summary: "Reconnect to your home country from config" },
+    { preset: "streaming-smartdns", icon: "📡", label: "TV streaming (Smart DNS)", summary: "VPN off, Nord Smart DNS on WiFi, Meshnet stays on" },
+    { preset: "public-wifi", icon: "☕", label: "Public Wi‑Fi safe", summary: "Kill switch and firewall on — for cafés, hotels, airports" },
+    { preset: "privacy-max", icon: "🔒", label: "Privacy max", summary: "Kill switch, firewall, and Nord DNS enabled" },
   ];
 
   const PRESET_CATEGORY_ORDER = [
@@ -559,6 +559,7 @@
     editor: { view: "editor", page: null, label: "Editor", title: "Edit config files — last resort" },
     "custom-shell": { view: "customShell", page: null, label: "Custom shell", title: "Shells for your custom quick-command categories" },
     "custom-packages": { view: "customPackages", page: null, label: "Custom packages", title: "Your apt packages by category — separate from Networking and Security catalogs" },
+    "pc-info": { view: "pcInfo", page: null, label: "PC info", title: "Complete hardware and system inventory for this computer" },
   };
 
   const WORKFLOW_SECTIONS = new Set(["places", "my-presets", "workflows", "favorites", "scenarios"]);
@@ -637,7 +638,11 @@
   }
 
   function termCommandIsPackageChange(cmd) {
-    return /\bapt(-get)?\s+(install|remove|purge|autoremove)\b/i.test(String(cmd || ""));
+    const text = String(cmd || "");
+    return /\bapt(-get)?\s+(install|remove|purge|autoremove)\b/i.test(text)
+      || /\bdpkg\s+-i\b/i.test(text)
+      || /\bnordctl\s+install-nordvpn\b/i.test(text)
+      || /NordVPN official apt install/i.test(text);
   }
 
   function dashboardTabForPresetSub(sub) {
@@ -836,6 +841,7 @@
     "tools/logs": { title: "Activity log", text: "All nordctl activity — filter by Scans, Packages, Terminal, Audits, VPN, DNS, UFW, and more. Default 10 entries; show up to 100. Expand scans for full output; export one or all.", help: "logs" },
     "tools/custom-shell": { title: "Custom shell", text: "Interactive bash with your custom quick-command categories — add categories in Settings → Quick commands.", help: "terminal-tab" },
     "tools/custom-packages": { title: "Custom packages", text: "Your apt packages by category — separate from Networking and Security catalogs.", help: "network-tools-install" },
+    "tools/pc-info": { title: "PC info", text: "Full hardware inventory — CPU, RAM, disks, firmware, PCI, USB, sensors, battery, and more. Local machine only; not networking or security.", help: "automate-tab" },
     "tools/auto-watcher": { title: "Zone watcher", text: "Background monitor that applies WiFi zone presets when your SSID changes.", help: "wifi-hub" },
     "tools/schedules": { title: "Schedules", text: "Run presets at set times — morning connect, evening disconnect, etc.", help: "automate-tab" },
     "tools/rollback": { title: "Rollback", text: "Your first-run install baseline — auto-saved on first use — restores config, WiFi DNS, Nord settings, and IPv6 without uninstalling.", help: "baseline" },
@@ -2224,6 +2230,7 @@
   const AUDIT_RETURN_ROUTE = "network/audit";
   const INSTALL_RETURN_ROUTE_KEY = "nordctl_install_return_route";
   const INSTALL_RETURN_CAT_KEY = "nordctl_install_return_cat";
+  const WIZARD_RETURN_ROUTE = "dashboard/wizard";
 
   function installTermScope(hub, category) {
     if (hub === "security") return "security";
@@ -2253,6 +2260,9 @@
     const route = sess?.packageInstallReturnRoute || sessionStorage.getItem(INSTALL_RETURN_ROUTE_KEY) || "";
     if (route === AUDIT_RETURN_ROUTE) {
       return { route: AUDIT_RETURN_ROUTE, label: "Back to audit", auditReturn: true };
+    }
+    if (route === WIZARD_RETURN_ROUTE) {
+      return { route: WIZARD_RETURN_ROUTE, label: "Back to wizard", wizardReturn: true };
     }
     return {
       route: installToolsPackagesRoute(
@@ -2292,6 +2302,10 @@
         const jump = resolveViewJump(backMeta.route);
         navigateRoute(jump.section, jump.tab, { force: true, sub: jump.sub || null });
         await loadOverallAudit(true);
+      } else if (backMeta.wizardReturn) {
+        const jump = resolveViewJump(backMeta.route);
+        navigateRoute(jump.section, jump.tab, { force: true, sub: jump.sub || null });
+        await refreshWizardContext();
       } else {
         const jump = resolveViewJump(backMeta.route);
         navigateRoute(jump.section, jump.tab, { force: true, sub: jump.sub || null });
@@ -4854,8 +4868,16 @@
       bar.classList.remove("hidden");
       bar.innerHTML = [
         done
-          ? `<p class="help-text"><strong>Install finished.</strong> ${backMeta.auditReturn ? "Return to the audit to re-run checks with the new tools." : "Return to packages to install more or check status."}</p>`
-          : `<p class="help-text"><strong>Install running</strong> — watch progress above. You can ${backMeta.auditReturn ? "return to the audit" : "return to packages"} anytime.</p>`,
+          ? `<p class="help-text"><strong>Install finished.</strong> ${
+            backMeta.wizardReturn
+              ? "Return to the wizard to continue setup (or run nordvpn login next)."
+              : backMeta.auditReturn
+                ? "Return to the audit to re-run checks with the new tools."
+                : "Return to packages to install more or check status."
+          }</p>`
+          : `<p class="help-text"><strong>Install running</strong> — watch progress above. Enter your sudo password when prompted.${
+            backMeta.wizardReturn ? " Return to the wizard when done." : ""
+          }</p>`,
         `<div class="actions term-post-install-actions">`,
         postInstallBackButtonHtml(backMeta, { primary: done }),
         `<button type="button" class="btn sm" data-term-dismiss-package-back>Dismiss</button>`,
@@ -5342,6 +5364,11 @@
     termFocusInput();
     if ((scope === "network" || scope === "security") && (opts.scrollToTerminal || termCommandIsPackageChange(text))) {
       scrollToDiagnosticsTerminal();
+    } else if (opts.scrollToTerminal && scope === "nord") {
+      requestAnimationFrame(() => {
+        ($("termPostInstallBar") || $("termViewport") || $("terminalPanel"))
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
     }
     if (termCommandIsPackageChange(text)) {
       const active = termGetActive();
@@ -5774,10 +5801,10 @@
   /* ── Views ── */
   const VALID_VIEWS = new Set([
     "dashboard", "wifi", "doctors", "lab", "security", "control",
-    "automate", "advanced", "logs", "terminal", "help", "editor", "settings", "customShell", "customPackages",
+    "automate", "advanced", "logs", "terminal", "help", "editor", "settings", "customShell", "customPackages", "pcInfo",
   ]);
   const HUB_VIEWS = new Set(["security", "lab", "control", "advanced", "wifi", "doctors"]);
-  const TOOLS_VIEWS = new Set(["logs", "automate", "editor", "terminal", "customShell", "customPackages"]);
+  const TOOLS_VIEWS = new Set(["logs", "automate", "editor", "terminal", "customShell", "customPackages", "pcInfo"]);
   const NETWORK_TOOLS_TABS = Object.fromEntries(
     Object.entries(TOOLS_TABS).filter(([id]) => id !== "settings")
   );
@@ -7180,6 +7207,14 @@
       syncPageIntro();
       return loadDone;
     }
+    if (id === "pc-info") {
+      switchView("pcInfo", { force: true, fromHash: !!opts.fromHash });
+      const done = () => { showTabLoading(false); };
+      const loadDone = loadPcInfo(!!opts.force).finally(done);
+      if (!opts.skipHash) syncRouteHash("tools", id, !!opts.replaceHash);
+      syncPageIntro();
+      return loadDone;
+    }
     if (cfg.page) localStorage.setItem("nordctl_auto_tab", cfg.page);
     switchView(cfg.view, { force: true, fromHash: !!opts.fromHash });
     if (cfg.page) switchPageTabs(cfg.view, cfg.page, { skipHash: true });
@@ -7551,6 +7586,7 @@
     if (viewName === "terminal") return "terminal";
     if (viewName === "logs") return "logs";
     if (viewName === "editor") return "editor";
+    if (viewName === "pcInfo") return "pc-info";
     if (viewName === "automate") {
       const page = localStorage.getItem("nordctl_auto_tab") || "guide";
       const map = {
@@ -7745,6 +7781,7 @@
     if (name === "logs") { loadLogs(); startLogsLive(); }
     if (name === "customShell") loadCustomShell();
     if (name === "customPackages") loadCustomPackages();
+    if (name === "pcInfo") loadPcInfo();
     if (name === "settings" && !opts.skipSettingsLoad) loadSettingsPanel();
     if (name === "terminal") loadTerminal();
     if (name === "help") loadHelpFull();
@@ -9513,9 +9550,9 @@
     presets.forEach((p) => { byId[p.id] = p; });
     box.innerHTML = QUICK_START.map((q) => {
       const p = byId[q.preset];
-      const label = p?.label || t(q.labelKey);
-      const desc = p?.summary || t(q.descKey);
-      return `<button type="button" class="quick-card" data-preset="${esc(q.preset)}" data-confirm="1" data-confirm-message="Apply “${esc(byId[q.preset]?.label || t(q.labelKey))}”? This may change VPN, DNS, or firewall settings." title="${esc(desc)}">
+      const label = p?.label || q.label || q.preset;
+      const desc = p?.summary || q.summary || "";
+      return `<button type="button" class="quick-card" data-preset="${esc(q.preset)}" data-confirm="1" data-confirm-message="Apply “${esc(byId[q.preset]?.label || label)}”? This may change VPN, DNS, or firewall settings." title="${esc(desc)}">
         <span class="quick-card-icon">${q.icon}</span>
         <span><strong>${esc(label)}</strong><span>${esc(desc)}</span></span>
       </button>`;
@@ -9696,8 +9733,58 @@
     if (txt) txt.textContent = text;
     else el.textContent = text;
     if (title) el.title = title;
-    el.className = baseClass;
-    if (level) el.classList.add(level);
+    el.className = level ? `${baseClass} ${level}` : baseClass;
+  }
+
+  function tempLevel(c) {
+    if (c == null || Number.isNaN(c)) return "";
+    if (c >= 90) return "hot";
+    if (c >= 75) return "warn";
+    return "ok";
+  }
+
+  function worstLevel(...levels) {
+    const rank = { hot: 3, warn: 2, ok: 1 };
+    return levels.reduce((best, lv) => ((rank[lv] || 0) > (rank[best] || 0) ? lv : best), "");
+  }
+
+  function topbarDiskClipped() {
+    const strip = $("topbarSysStrip");
+    const disk = $("topbarDisk");
+    if (!strip || !disk || disk.hidden) return false;
+    const sr = strip.getBoundingClientRect();
+    const dr = disk.getBoundingClientRect();
+    return dr.right > sr.right + 0.5 || strip.scrollWidth > strip.clientWidth + 2;
+  }
+
+  function syncTopbarChipFit() {
+    const strip = $("topbarSysStrip");
+    const uptime = $("topbarUptime");
+    if (!strip) return;
+    if (uptime) uptime.hidden = false;
+    strip.classList.remove("topbar-sys-strip--fit");
+    if (topbarDiskClipped()) strip.classList.add("topbar-sys-strip--fit");
+    if (topbarDiskClipped() && uptime) uptime.hidden = true;
+  }
+
+  function initTopbarStackHeight() {
+    const stack = $("topbarStack");
+    if (!stack || stack.dataset.topbarHeightInit) return;
+    stack.dataset.topbarHeightInit = "1";
+    const sync = () => {
+      const h = Math.ceil(stack.getBoundingClientRect().height);
+      if (h > 0) document.documentElement.style.setProperty("--topbar-stack-h", `${h}px`);
+      syncTopbarChipFit();
+    };
+    sync();
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(sync);
+      ro.observe(stack);
+      const strip = $("topbarSysStrip");
+      if (strip) ro.observe(strip);
+    } else {
+      window.addEventListener("resize", sync);
+    }
   }
 
   function renderTopbarSysStrip(data) {
@@ -9709,17 +9796,29 @@
     const ui = data.ui_service || {};
     const cores = load.cores || 1;
     const load1 = Number(load["1m"] ?? 0);
+    const cpuTemp = data.cpu_temp_c;
+    const cpuLevel = worstLevel(
+      pctLevel(load.pct ?? (cores ? (100 * load1) / cores : null), 75, 100),
+      tempLevel(cpuTemp),
+    );
+    const cpuText = cpuTemp != null
+      ? `CPU ${load1.toFixed(2)} · ${cpuTemp}°C`
+      : `CPU ${load1.toFixed(2)}`;
+    const cpuTitle = [
+      `Load 1m ${load1} · 5m ${load["5m"]} · 15m ${load["15m"]} · ${cores} cores`,
+      cpuTemp != null ? `${cpuTemp}°C` : null,
+    ].filter(Boolean).join(" · ");
     applySysChip(
       $("topbarLoad"),
-      "sys-chip sys-load",
-      pctLevel(load.pct ?? (cores ? (100 * load1) / cores : null), 75, 100),
-      `CPU ${load1.toFixed(2)}`,
-      `Load 1m ${load1} · 5m ${load["5m"]} · 15m ${load["15m"]} · ${cores} cores`,
+      "sys-chip sys-metric sys-load sys-chip-spark",
+      cpuLevel,
+      cpuText,
+      cpuTitle,
     );
     const memPct = mem.used_pct;
     applySysChip(
       $("topbarMem"),
-      "sys-chip sys-mem",
+      "sys-chip sys-metric sys-mem sys-chip-spark",
       pctLevel(memPct, 78, 90),
       memPct != null ? `RAM ${memPct}%` : "RAM —",
       memPct != null
@@ -9734,7 +9833,7 @@
         swapEl.hidden = false;
         applySysChip(
           swapEl,
-          "sys-chip sys-swap",
+          "sys-chip sys-metric sys-swap",
           pctLevel(swapPct, 50, 75),
           swapPct != null ? `Swap ${swapPct}%` : "Swap —",
           swapPct != null
@@ -9748,7 +9847,7 @@
     const diskPct = disk.used_pct;
     applySysChip(
       $("topbarDisk"),
-      "sys-chip sys-disk",
+      "sys-chip sys-metric sys-disk sys-chip-spark",
       pctLevel(diskPct, 82, 92),
       diskPct != null ? `Disk ${diskPct}%` : "Disk —",
       diskPct != null ? `${disk.free_gb} GiB free on ${disk.mount || "/"}` : "Root disk usage",
@@ -9768,14 +9867,9 @@
       formatHostUptime(data.uptime_sec),
       data.uptime_sec != null ? `System uptime ${formatHostUptime(data.uptime_sec)}` : "System uptime",
     );
-    const hostname = data.hostname || "—";
-    applySysChip(
-      $("topbarHost"),
-      "sys-chip sys-host",
-      "",
-      "Host",
-      hostname && hostname !== "—" ? `Hostname: ${hostname}` : "Hostname unknown",
-    );
+    const hostname = data.hostname || "";
+    const clock = $("topbarClock");
+    if (clock && hostname) clock.dataset.hostname = hostname;
     applySysChip(
       $("topbarUiSvc"),
       "sys-chip sys-ui",
@@ -9784,6 +9878,7 @@
       ui.active ? "nordctl web UI is running" : "nordctl web UI is not active",
     );
     recordSysHist(data);
+    syncTopbarChipFit();
   }
 
   function tickTopbarClock() {
@@ -9795,19 +9890,23 @@
     const now = new Date();
     const time = formatLocaleTime(now, false);
     const day = formatLocaleWeekday(now);
-    const date = formatLocaleDateShort(now);
+    const date = now.toLocaleDateString([], { day: "numeric", month: "short" });
     if (timeEl) timeEl.textContent = time;
     else if (chip) chip.textContent = time;
     if (dayEl) dayEl.textContent = day;
     if (dateEl) dateEl.textContent = date;
     if (chip) {
-      chip.title = now.toLocaleString(undefined, {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        ...(uiPrefs.clock_format === "12h" ? {} : { hour12: false }),
-      });
+      const host = chip.dataset.hostname || "";
+      chip.title = [
+        host,
+        now.toLocaleString(undefined, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          ...(uiPrefs.clock_format === "12h" ? {} : { hour12: false }),
+        }),
+      ].filter(Boolean).join(" · ");
     }
   }
 
@@ -12169,6 +12268,7 @@
   }
 
   const SPECTRUM_BANDS_KEY = "nordctl_spectrum_bands";
+  const SPECTRUM_WIFI_CH5 = [36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165];
   let spectrumData = null;
   let spectrumLiveTimer = null;
   let spectrumChartBound = false;
@@ -12176,9 +12276,63 @@
   let spectrumBandsEnabled = {};
   let spectrumView = { mhzMin: null, mhzMax: null };
   let spectrumPan = { active: false, startX: 0, startMin: 0, startMax: 0 };
+  let spectrumFocusKey = null;
+  let spectrumSsidUiBound = false;
 
   function resetSpectrumView() {
     spectrumView = { mhzMin: null, mhzMax: null };
+    spectrumFocusKey = null;
+  }
+
+  function spectrumNetKey(n) {
+    return `${n?.ssid || ""}|${n?.mhz ?? ""}|${n?.bssid || ""}|${n?.channel ?? ""}`;
+  }
+
+  function spectrumNetColorIndex(n, scan) {
+    const list = scan || spectrumData?.scan || [];
+    const idx = list.findIndex((x) => spectrumNetKey(x) === spectrumNetKey(n));
+    return idx >= 0 ? idx : 0;
+  }
+
+  function spectrumNetColor(n, scan) {
+    return rfBellColor(spectrumNetColorIndex(n, scan));
+  }
+
+  function spectrumFindNet(key) {
+    return (spectrumData?.scan || []).find((n) => spectrumNetKey(n) === key) || null;
+  }
+
+  function spectrumCenterOnNetwork(net) {
+    if (!net || net.mhz == null) return;
+    if (net.band_id) {
+      spectrumBandsEnabled[net.band_id] = true;
+      saveSpectrumBandPrefs();
+      renderSpectrumBandSwitches(spectrumData?.all_bands || spectrumData?.bands);
+    }
+    const span = net.band_id === "2g" ? 58 : net.band_id === "6g" ? 160 : 130;
+    const mid = Number(net.mhz);
+    let vMin = mid - span / 2;
+    let vMax = mid + span / 2;
+    const bins = filteredSpectrumBins(spectrumData || {});
+    const full = spectrumAutoFitRange(bins, spectrumData?.scan || []) || { min: vMin - 40, max: vMax + 40 };
+    if (vMin < full.min) {
+      vMax += full.min - vMin;
+      vMin = full.min;
+    }
+    if (vMax > full.max) {
+      vMin -= vMax - full.max;
+      vMax = full.max;
+    }
+    if (vMax - vMin < 40) {
+      const c = (vMin + vMax) / 2;
+      vMin = c - 50;
+      vMax = c + 50;
+    }
+    spectrumView = { mhzMin: vMin, mhzMax: vMax };
+    spectrumFocusKey = spectrumNetKey(net);
+    renderSpectrumCharts();
+    renderSpectrumSsidButtons();
+    renderSpectrumScanTable();
   }
 
   function spectrumFullRange(bins) {
@@ -12186,24 +12340,147 @@
     return { min: bins[0].mhz, max: bins[bins.length - 1].mhz };
   }
 
-  function spectrumVisibleRange(bins) {
-    const full = spectrumFullRange(bins);
-    let vmin = spectrumView.mhzMin ?? full.min;
-    let vmax = spectrumView.mhzMax ?? full.max;
-    if (vmax - vmin < 5) {
-      const mid = (vmin + vmax) / 2;
-      vmin = mid - 2.5;
-      vmax = mid + 2.5;
+  function spectrumFilteredScan(scan) {
+    return (scan || []).filter((n) => {
+      if (!n.band_id) return true;
+      return spectrumBandsEnabled[n.band_id] !== false;
+    });
+  }
+
+  function spectrumHiddenScan(scan) {
+    return (scan || []).filter((n) => n.band_id && spectrumBandsEnabled[n.band_id] === false);
+  }
+
+  function spectrumEnabledBands() {
+    const bands = spectrumData?.all_bands || spectrumData?.bands || [];
+    return bands.filter((b) => spectrumBandsEnabled[b.id] !== false);
+  }
+
+  function spectrumBandIdForMhz(mhz, bands) {
+    for (const b of bands || []) {
+      if (mhz >= b.mhz_min && mhz < b.mhz_max) return b.id;
     }
-    vmin = Math.max(full.min, vmin);
-    vmax = Math.min(full.max, vmax);
+    return null;
+  }
+
+  function spectrumWifiChannelCatalog(bands) {
+    const rows = [];
+    for (let ch = 1; ch <= 13; ch++) {
+      rows.push({ channel: ch, mhz: 2407 + ch * 5, band_id: "2g" });
+    }
+    rows.push({ channel: 14, mhz: 2484, band_id: "2g" });
+    for (const ch of SPECTRUM_WIFI_CH5) {
+      const mhz = 5000 + ch * 5;
+      const band_id = spectrumBandIdForMhz(mhz, bands) || "5g_unii1";
+      rows.push({ channel: ch, mhz, band_id });
+    }
+    for (let ch = 1; ch <= 233; ch += 4) {
+      const mhz = 5950 + ch * 5;
+      const band_id = spectrumBandIdForMhz(mhz, bands);
+      if (band_id === "6g") rows.push({ channel: ch, mhz, band_id });
+    }
+    return rows;
+  }
+
+  function spectrumChannelTicks(mhzMin, mhzMax, bands, scan) {
+    const seen = new Set();
+    const ticks = [];
+    const add = (channel, mhz, band_id) => {
+      if (channel == null || mhz == null) return;
+      if (band_id && spectrumBandsEnabled[band_id] === false) return;
+      if (mhz < mhzMin - 4 || mhz > mhzMax + 4) return;
+      const key = `${channel}@${mhz}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      ticks.push({ channel, mhz, band_id });
+    };
+    for (const t of spectrumWifiChannelCatalog(bands)) add(t.channel, t.mhz, t.band_id);
+    for (const n of scan || []) add(n.channel, n.mhz, n.band_id);
+    return ticks.sort((a, b) => a.mhz - b.mhz);
+  }
+
+  function spectrumEmptyMessage(scan) {
+    const hidden = spectrumHiddenScan(scan);
+    if (hidden.length) {
+      const hints = hidden.map((n) => {
+        const band = spectrumBandLabel(n.band_id, spectrumData?.all_bands);
+        return `<strong>${esc(n.ssid)}</strong> is on ${esc(band)} (ch ${esc(String(n.channel || "?"))}) — enable that band above`;
+      });
+      return `No networks on the bands you have selected. ${hints.join(" · ")}`;
+    }
+    const sel = spectrumEnabledBands().map((b) => b.short || b.label).join(", ");
+    return `No WiFi networks on ${esc(sel || "selected bands")} in this scan — try <strong>Rescan WiFi</strong>.`;
+  }
+
+  /** Default MHz window — wide enough for bell curves and labels when few channels scan. */
+  function spectrumAutoFitRange(allBins, scan) {
+    const nets = spectrumFilteredScan(scan);
+    const binMhz = (allBins || []).map((b) => b.mhz).filter((v) => Number.isFinite(v));
+    const netMhz = nets.map((n) => n.mhz).filter((v) => Number.isFinite(v));
+    let values = [...new Set([...binMhz, ...netMhz])];
+    if (!values.length) {
+      const enabled = spectrumEnabledBands();
+      if (enabled.length) {
+        const min = Math.min(...enabled.map((b) => b.mhz_min));
+        const max = Math.max(...enabled.map((b) => b.mhz_max));
+        return { min: min - 16, max: max + 16 };
+      }
+      return null;
+    }
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    const rawSpan = max - min;
+    const has5g = values.some((v) => v >= 4900);
+    const has2g = values.some((v) => v < 3000);
+    let minSpan = has5g && !has2g ? 130 : has2g && !has5g ? 50 : 150;
+    if (rawSpan < 8) {
+      const mid = (min + max) / 2;
+      min = mid - minSpan / 2;
+      max = mid + minSpan / 2;
+    } else if (rawSpan < minSpan) {
+      const mid = (min + max) / 2;
+      min = mid - minSpan / 2;
+      max = mid + minSpan / 2;
+    }
+    const edgePad = 32;
+    return { min: min - edgePad, max: max + edgePad };
+  }
+
+  function spectrumVisibleRange(bins, scan) {
+    const fit = spectrumAutoFitRange(bins, scan);
+    const full = fit || spectrumFullRange(bins);
+    const userZoomed = spectrumView.mhzMin != null || spectrumView.mhzMax != null;
+    let vmin = userZoomed ? spectrumView.mhzMin : full.min;
+    let vmax = userZoomed ? spectrumView.mhzMax : full.max;
+    if (vmin == null || vmax == null) {
+      vmin = full.min;
+      vmax = full.max;
+    }
+    if (vmax - vmin < 50) {
+      const mid = (vmin + vmax) / 2;
+      vmin = mid - 65;
+      vmax = mid + 65;
+    }
+    if (userZoomed) {
+      vmin = Math.max(full.min, vmin);
+      vmax = Math.min(full.max, vmax);
+    }
     return { min: vmin, max: vmax, full };
   }
 
-  function binsInSpectrumView(bins) {
+  function ensureSpectrumViewFits(scan, bins) {
+    const nets = spectrumFilteredScan(scan);
+    if (!nets.length) return;
+    if (spectrumView.mhzMin == null && spectrumView.mhzMax == null) return;
+    const { min, max } = spectrumVisibleRange(bins, scan);
+    const anyVisible = nets.some((n) => n.mhz >= min - 25 && n.mhz <= max + 25);
+    if (!anyVisible) resetSpectrumView();
+  }
+
+  function binsInSpectrumView(bins, scan) {
     if (!bins.length) return bins;
-    const { min, max } = spectrumVisibleRange(bins);
-    return bins.filter((b) => b.mhz >= min - 0.5 && b.mhz <= max + 0.5);
+    const { min, max } = spectrumVisibleRange(bins, scan);
+    return bins.filter((b) => b.mhz >= min - 5 && b.mhz <= max + 5);
   }
 
   function truncateSpectrumLabel(text, maxLen) {
@@ -12247,7 +12524,6 @@
     const xMin = cfg.xMin;
     const xMax = cfg.xMax;
     const dbmFloor = cfg.dbmFloor ?? -92;
-    let dbmTop = cfg.dbmTop ?? -30;
     const pad = cfg.pad || { l: 44, r: 14, t: 24, b: 34 };
     const cssH = cfg.cssH ?? 280;
     const xTicks = cfg.xTicks || [];
@@ -12264,14 +12540,10 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    if (!series.length || xMax <= xMin) {
+    if (xMax <= xMin) {
       if (emptyEl) emptyEl.classList.remove("hidden");
       return;
     }
-    if (emptyEl) emptyEl.classList.add("hidden");
-
-    const peakDbm = Math.max(...series.map((s) => s.dbm ?? dbmFloor));
-    dbmTop = Math.min(-28, Math.ceil((peakDbm + 6) / 5) * 5);
 
     const plotW = cssW - pad.l - pad.r;
     const plotH = cssH - pad.t - pad.b;
@@ -12282,6 +12554,15 @@
     ctx.strokeStyle = "rgba(130,130,145,0.4)";
     ctx.lineWidth = 1;
     ctx.strokeRect(pad.l + 0.5, pad.t + 0.5, plotW - 1, plotH - 1);
+
+    let dbmTop = cfg.dbmTop ?? -30;
+    if (series.length) {
+      const peakDbm = Math.max(...series.map((s) => s.dbm ?? dbmFloor));
+      dbmTop = Math.min(-28, Math.ceil((peakDbm + 6) / 5) * 5);
+      if (emptyEl) emptyEl.classList.add("hidden");
+    } else if (emptyEl) {
+      emptyEl.classList.remove("hidden");
+    }
 
     for (let dbm = dbmTop; dbm >= dbmFloor; dbm -= 10) {
       const y = rfDbmToY(dbm, dbmFloor, dbmTop, pad, plotH);
@@ -12302,7 +12583,7 @@
       .slice()
       .sort((a, b) => (a.dbm ?? dbmFloor) - (b.dbm ?? dbmFloor));
 
-    active.forEach((s) => {
+    if (active.length) active.forEach((s) => {
       const color = s.color || "#5eead4";
       const sigma = s.sigma || 8;
       const mhzStart = Math.max(xMin, s.mhz - sigma * 3.4);
@@ -12348,7 +12629,7 @@
       ctx.globalAlpha = 1;
     });
 
-    active.forEach((s) => {
+    if (active.length) active.forEach((s) => {
       const x = rfMhzToX(s.mhz, xMin, xMax, pad, plotW);
       const y = rfDbmToY(s.dbm ?? dbmFloor, dbmFloor, dbmTop, pad, plotH);
       const label = truncateSpectrumLabel(s.label || "—", 20);
@@ -12356,7 +12637,8 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillStyle = s.color || "#fff";
-      ctx.fillText(label, x, Math.max(pad.t + 12, y - 8));
+      const lx = Math.max(pad.l + 36, Math.min(pad.l + plotW - 36, x));
+      ctx.fillText(label, lx, Math.max(pad.t + 12, y - 8));
     });
 
     if (linkMhz != null && linkMhz >= xMin && linkMhz <= xMax) {
@@ -12375,12 +12657,25 @@
     ctx.font = "10px ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    const tickStep = xTicks.length > 18 ? Math.ceil(xTicks.length / 14) : 1;
+    const tickStep = xTicks.length > 22 ? Math.ceil(xTicks.length / 18) : 1;
     xTicks.forEach((t, i) => {
       if (i % tickStep !== 0 && i !== xTicks.length - 1) return;
       if (t.mhz < xMin - 0.5 || t.mhz > xMax + 0.5) return;
       const x = rfMhzToX(t.mhz, xMin, xMax, pad, plotW);
-      ctx.fillText(xTickLabel(t), x, cssH - 10);
+      ctx.strokeStyle = "rgba(130,130,145,0.35)";
+      ctx.beginPath();
+      ctx.moveTo(x, pad.t + plotH);
+      ctx.lineTo(x, pad.t + plotH + 4);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(180,180,195,0.75)";
+      ctx.fillText(xTickLabel(t), x, cssH - 8);
+      if (t.mhz != null && xTicks.length <= 14) {
+        ctx.fillStyle = "rgba(140,140,155,0.55)";
+        ctx.font = "9px ui-monospace, monospace";
+        ctx.fillText(`${Math.round(t.mhz)}`, x, cssH - 20);
+        ctx.font = "10px ui-monospace, monospace";
+        ctx.fillStyle = "rgba(180,180,195,0.75)";
+      }
     });
 
     ctx.textAlign = "left";
@@ -12389,8 +12684,9 @@
 
   function spectrumZoomBy(factor, focalFrac) {
     const bins = filteredSpectrumBins(spectrumData || {});
-    if (bins.length < 2) return;
-    const full = spectrumFullRange(bins);
+    const scan = filteredSpectrumScan(spectrumData || {});
+    if (bins.length < 1 && !(scan || []).length) return;
+    const full = spectrumAutoFitRange(bins, scan) || spectrumFullRange(bins);
     let vMin = spectrumView.mhzMin ?? full.min;
     let vMax = spectrumView.mhzMax ?? full.max;
     const span = vMax - vMin;
@@ -12426,7 +12722,8 @@
       e.preventDefault();
       if (!spectrumData?.ok) return;
       const bins = filteredSpectrumBins(spectrumData);
-      if (bins.length < 2) return;
+      const scan = filteredSpectrumScan(spectrumData);
+      if (bins.length < 1 && !(scan || []).length) return;
       const rect = canvas.getBoundingClientRect();
       const plotW = rect.width - padL - padR;
       const mouseX = e.clientX - rect.left - padL;
@@ -12437,8 +12734,9 @@
     canvas.addEventListener("pointerdown", (e) => {
       if (!spectrumData?.ok || e.button !== 0) return;
       const bins = filteredSpectrumBins(spectrumData);
-      if (bins.length < 2) return;
-      const { min, max } = spectrumVisibleRange(bins);
+      const scan = filteredSpectrumScan(spectrumData);
+      if (bins.length < 1 && !(scan || []).length) return;
+      const { min, max } = spectrumVisibleRange(bins, scan);
       spectrumPan = { active: true, startX: e.clientX, startMin: min, startMax: max, pointerId: e.pointerId };
       canvas.classList.add("spectrum-panning");
       canvas.setPointerCapture(e.pointerId);
@@ -12447,8 +12745,8 @@
     canvas.addEventListener("pointermove", (e) => {
       if (!spectrumPan.active || e.pointerId !== spectrumPan.pointerId) return;
       const bins = filteredSpectrumBins(spectrumData);
-      if (bins.length < 2) return;
-      const full = spectrumFullRange(bins);
+      const scan = filteredSpectrumScan(spectrumData);
+      const full = spectrumAutoFitRange(bins, scan) || spectrumFullRange(bins);
       const rect = canvas.getBoundingClientRect();
       const plotW = rect.width - padL - padR;
       const span = spectrumPan.startMax - spectrumPan.startMin;
@@ -12527,6 +12825,7 @@
         resetSpectrumView();
         cb.closest(".spectrum-band-switch")?.classList.toggle("on", cb.checked);
         renderSpectrumCharts();
+        renderSpectrumSsidButtons();
         renderSpectrumScanTable();
       });
     });
@@ -12560,17 +12859,11 @@
     bindSpectrumChartResize();
     bindSpectrumZoom();
 
-    const bins = binsInSpectrumView(allBins || []);
-    let mhzMin;
-    let mhzMax;
-    if (bins.length >= 1) {
-      const view = spectrumVisibleRange(allBins || bins);
-      mhzMin = view.min;
-      mhzMax = view.max;
-    } else if ((scan || []).length) {
-      mhzMin = Math.min(...scan.map((n) => n.mhz)) - 12;
-      mhzMax = Math.max(...scan.map((n) => n.mhz)) + 12;
-    } else {
+    const view = spectrumVisibleRange(allBins || [], scan || []);
+    const mhzMin = view.min;
+    const mhzMax = view.max;
+
+    if (mhzMax <= mhzMin && !spectrumFilteredScan(scan).length) {
       drawRfBellSpectrum(canvas, { emptyEl: empty, series: [], xMin: 0, xMax: 1 });
       return;
     }
@@ -12583,24 +12876,36 @@
         : `${Math.round(mhzMin)} – ${Math.round(mhzMax)} MHz`;
     }
 
-    const nets = (scan || []).filter((n) => {
-      if (n.mhz == null || n.mhz < mhzMin - 15 || n.mhz > mhzMax + 15) return false;
-      if (!n.band_id) return true;
-      return spectrumBandsEnabled[n.band_id] !== false;
+    const allScan = spectrumData?.scan || scan || [];
+    const nets = spectrumFilteredScan(scan).filter((n) => {
+      if (n.mhz == null || n.mhz < mhzMin - 30 || n.mhz > mhzMax + 30) return false;
+      return true;
     });
 
-    const series = nets.map((n, i) => ({
-      mhz: n.mhz,
-      dbm: n.signal_dbm != null ? n.signal_dbm : rfPctToDbm(n.signal_pct),
-      label: n.ssid || "(hidden)",
-      color: rfBellColor(i),
-      sigma: n.band_id === "2g" ? 11 : 9,
-      inUse: !!n.in_use,
-    }));
+    const series = nets.map((n) => {
+      const key = spectrumNetKey(n);
+      const focused = spectrumFocusKey === key;
+      return {
+        mhz: n.mhz,
+        dbm: n.signal_dbm != null ? n.signal_dbm : rfPctToDbm(n.signal_pct),
+        label: n.ssid || "(hidden)",
+        color: spectrumNetColor(n, allScan),
+        sigma: n.band_id === "2g" ? 11 : 9,
+        inUse: !!n.in_use || focused,
+      };
+    });
 
-    const xTicks = bins
-      .filter((b) => b.channel != null)
-      .map((b) => ({ mhz: b.mhz, channel: b.channel }));
+    const bandsMeta = spectrumData?.all_bands || bands || [];
+    const xTicks = spectrumChannelTicks(mhzMin, mhzMax, bandsMeta, spectrumData?.scan || scan || []);
+
+    if (empty) {
+      if (!series.length) {
+        empty.innerHTML = spectrumEmptyMessage(spectrumData?.scan || scan || []);
+        empty.classList.remove("hidden");
+      } else {
+        empty.classList.add("hidden");
+      }
+    }
 
     drawRfBellSpectrum(canvas, {
       emptyEl: empty,
@@ -12609,8 +12914,74 @@
       xMax: mhzMax,
       linkMhz: link?.mhz ?? null,
       xTicks,
-      xTickLabel: (t) => String(t.channel ?? ""),
+      xTickLabel: (t) => (t.channel != null ? `ch ${t.channel}` : `${Math.round(t.mhz)}`),
       cssH: 280,
+      pad: { l: 44, r: 14, t: 24, b: 42 },
+    });
+  }
+
+  function spectrumSsidButtonHtml(n, scan, compact) {
+    const key = spectrumNetKey(n);
+    const band = spectrumBandLabel(n.band_id, spectrumData?.all_bands);
+    const bandOff = n.band_id && spectrumBandsEnabled[n.band_id] === false;
+    const active = spectrumFocusKey === key;
+    const color = spectrumNetColor(n, scan);
+    const ch = n.channel != null ? `ch ${n.channel}` : `${Math.round(n.mhz)} MHz`;
+    const label = compact
+      ? `${band} · ${ch}`
+      : `${truncateSpectrumLabel(n.ssid || "(hidden)", 18)} · ${band} · ${ch}`;
+    return `<button type="button" class="spectrum-ssid-btn${active ? " active" : ""}${bandOff ? " band-off" : ""}${n.in_use ? " in-use" : ""}"
+      data-spectrum-focus="${esc(encodeURIComponent(key))}" style="--ssid-color:${esc(color)}"
+      title="${esc(n.ssid || "(hidden)")} · ${esc(String(n.mhz))} MHz · ${esc(String(n.signal_dbm))} dBm${bandOff ? " · band filter off" : ""}">
+      ${n.in_use ? '<span class="spectrum-ssid-star" aria-hidden="true">★</span>' : ""}
+      <span class="spectrum-ssid-btn-label">${esc(label)}</span>
+      <span class="spectrum-ssid-signal">${esc(String(n.signal_dbm))} dBm</span>
+    </button>`;
+  }
+
+  function renderSpectrumSsidButtons() {
+    const box = $("spectrumSsidButtons");
+    if (!box) return;
+    if (!spectrumData?.ok) {
+      box.innerHTML = '<span class="muted-inline">No scan data — rescan WiFi.</span>';
+      return;
+    }
+    const scan = (spectrumData.scan || []).slice().sort((a, b) => (b.signal_pct || 0) - (a.signal_pct || 0));
+    if (!scan.length) {
+      box.innerHTML = '<span class="muted-inline">No networks detected — click <strong>Rescan WiFi</strong>.</span>';
+      return;
+    }
+    const bySsid = new Map();
+    scan.forEach((n) => {
+      const ssid = n.ssid || "(hidden)";
+      if (!bySsid.has(ssid)) bySsid.set(ssid, []);
+      bySsid.get(ssid).push(n);
+    });
+    box.innerHTML = [...bySsid.entries()].map(([ssid, nets]) => {
+      if (nets.length === 1) return spectrumSsidButtonHtml(nets[0], scan, false);
+      return `<div class="spectrum-ssid-group">
+        <span class="spectrum-ssid-group-name" title="${esc(ssid)}">${esc(truncateSpectrumLabel(ssid, 22))}</span>
+        <div class="spectrum-ssid-group-btns">${nets.map((n) => spectrumSsidButtonHtml(n, scan, true)).join("")}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function bindSpectrumSsidUi() {
+    if (spectrumSsidUiBound) return;
+    spectrumSsidUiBound = true;
+    $("spectrumSsidButtons")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-spectrum-focus]");
+      if (!btn) return;
+      const key = decodeURIComponent(btn.dataset.spectrumFocus || "");
+      const net = spectrumFindNet(key);
+      if (net) spectrumCenterOnNetwork(net);
+    });
+    $("spectrumScanBody")?.addEventListener("click", (e) => {
+      const row = e.target.closest("tr[data-spectrum-focus]");
+      if (!row) return;
+      const key = decodeURIComponent(row.dataset.spectrumFocus || "");
+      const net = spectrumFindNet(key);
+      if (net) spectrumCenterOnNetwork(net);
     });
   }
 
@@ -12619,34 +12990,28 @@
     const bins = filteredSpectrumBins(spectrumData);
     const scan = filteredSpectrumScan(spectrumData);
     drawSpectrumMain(bins, spectrumData.all_bands || spectrumData.bands, spectrumData.link, scan);
-    const legend = $("spectrumLegend");
-    if (legend) {
-      const nets = scan.slice().sort((a, b) => (b.signal_pct || 0) - (a.signal_pct || 0));
-      legend.innerHTML = nets.length
-        ? nets.map((n, i) =>
-          `<span class="spectrum-legend-item" style="--c:${esc(rfBellColor(i))}">${esc(truncateSpectrumLabel(n.ssid || "(hidden)", 14))}</span>`
-        ).join("")
-        : (spectrumData.bands || []).filter((b) => spectrumBandsEnabled[b.id] !== false).map((b) =>
-          `<span class="spectrum-legend-item" style="--c:${esc(b.color)}">${esc(b.short || b.label)}</span>`
-        ).join("");
-    }
   }
 
   function renderSpectrumScanTable() {
     const body = $("spectrumScanBody");
     if (!body || !spectrumData) return;
-    const rows = filteredSpectrumScan(spectrumData).sort((a, b) => (b.signal_pct || 0) - (a.signal_pct || 0));
+    const rows = (spectrumData.scan || []).slice().sort((a, b) => (b.signal_pct || 0) - (a.signal_pct || 0));
     body.innerHTML = rows.length
-      ? rows.map((n) => `<tr class="${n.in_use ? "spectrum-row-active" : ""}">
+      ? rows.map((n) => {
+        const bandOff = n.band_id && spectrumBandsEnabled[n.band_id] === false;
+        const key = encodeURIComponent(spectrumNetKey(n));
+        const focused = spectrumFocusKey === spectrumNetKey(n);
+        return `<tr class="spectrum-scan-row${n.in_use ? " spectrum-row-active" : ""}${bandOff ? " spectrum-row-band-off" : ""}${focused ? " spectrum-row-focused" : ""}" data-spectrum-focus="${esc(key)}" tabindex="0" role="button" title="Click to centre on chart">
           <td>${n.in_use ? "★" : ""}</td>
-          <td>${esc(n.ssid)}</td>
+          <td><span class="spectrum-scan-ssid-dot" style="background:${esc(spectrumNetColor(n, rows))}"></span>${esc(n.ssid)}${bandOff ? ' <span class="muted-inline">(band off)</span>' : ""}</td>
           <td class="mono">${esc(String(n.mhz))}</td>
           <td>${esc(String(n.channel || "—"))}</td>
           <td><span class="spectrum-band-tag" style="background:${esc(spectrumBandColor(n.band_id, spectrumData.all_bands))}22;color:${esc(spectrumBandColor(n.band_id, spectrumData.all_bands))}">${esc(spectrumBandLabel(n.band_id, spectrumData.all_bands))}</span></td>
           <td>${esc(String(n.signal_pct))}% <span class="muted-inline">(${esc(String(n.signal_dbm))} dBm)</span></td>
           <td>${esc(n.security)}</td>
-        </tr>`).join("")
-      : `<tr><td colspan="7" class="muted">No networks in selected bands.</td></tr>`;
+        </tr>`;
+      }).join("")
+      : `<tr><td colspan="7" class="muted">No networks detected — click Rescan WiFi.</td></tr>`;
   }
 
   function renderSpectrumMetrics(data) {
@@ -12684,7 +13049,12 @@
     $("spectrumChanCount") && ($("spectrumChanCount").textContent = String(data.channel_count || 0));
     $("spectrumAge") && ($("spectrumAge").textContent = `Updated ${formatLocaleTime(Date.now(), true)}`);
     renderSpectrumMetrics(data);
+    if (data?.ok) {
+      ensureSpectrumViewFits(data.scan, filteredSpectrumBins(data));
+    }
+    bindSpectrumSsidUi();
     renderSpectrumCharts();
+    renderSpectrumSsidButtons();
     renderSpectrumScanTable();
   }
 
@@ -15232,6 +15602,475 @@
     }
   }
 
+  const PC_INFO_INTROS = {
+    system: "Identity of this machine in Linux — hostname, distro, kernel, boot time, and who is logged in. Useful when you need to know exactly which box you are managing.",
+    cpu: "The brain of your PC. Core count, cache, current speed, load averages, and temperature tell you how busy and how healthy the processor is right now.",
+    memory: "Working RAM and swap space. Bars show live usage; module details reveal exact DIMM type (DDR4/DDR5), speed, and slot layout when SMBIOS is available.",
+    storage: "Every physical drive with model, bus, partitions, and usage. Root filesystem bar shows how full your main disk is.",
+    firmware: "SMBIOS/DMI data burned into the motherboard — manufacturer, model, BIOS version, and serial numbers for support and warranty.",
+    buses: "PCI and USB inventories list expansion cards and plugged-in devices. Collapsed by default when the list is long.",
+    gpu: "Graphics and sound hardware — discrete GPUs via PCI, built-in DRM cards, and ALSA audio devices.",
+    power: "Laptop battery health and ACPI power source, plus hardware sensor chips reporting temperature and fan speed.",
+    security: "Firmware security features (EFI, TPM, Secure Boot vars) and NUMA topology for multi-socket / multi-die systems.",
+  };
+
+  function pcInfoIntro(text) {
+    if (!text) return "";
+    return '<p class="pc-info-section-intro">' + esc(text) + "</p>";
+  }
+
+  function pcInfoKv(label, value, opts = {}) {
+    const v = value == null || value === "" ? "—" : String(value);
+    const cls = opts.mono ? "v mono-sm" : "v";
+    const tip = opts.tip ? ' title="' + esc(opts.tip) + '"' : "";
+    return '<div class="pc-info-kv"' + tip + '><span class="k">' + esc(label) + '</span><span class="' + cls + '">' + esc(v) + "</span></div>";
+  }
+
+  function pcInfoSection(icon, title, bodyHtml) {
+    return '<section class="pc-info-section"><header class="pc-info-section-head"><h3><span class="pc-info-section-icon" aria-hidden="true">' + icon + "</span> " + esc(title) + '</h3></header><div class="pc-info-section-body">' + bodyHtml + "</div></section>";
+  }
+
+  function pcInfoTable(headers, rows) {
+    if (!rows.length) return '<p class="help-text muted-inline">No data available on this system.</p>';
+    const head = headers.map((h) => "<th>" + esc(h) + "</th>").join("");
+    const body = rows.map((row) => "<tr>" + row.map((c) => "<td>" + c + "</td>").join("") + "</tr>").join("");
+    return '<div class="pc-info-table-wrap"><table class="pc-info-table"><thead><tr>' + head + "</tr></thead><tbody>" + body + "</tbody></table></div>";
+  }
+
+  function pcInfoDetails(summary, bodyHtml, count) {
+    if (!bodyHtml || !String(bodyHtml).trim()) return "";
+    const cnt = count != null ? ' <span class="pc-info-details-count">(' + esc(String(count)) + ")</span>" : "";
+    return '<details class="pc-info-details"><summary><span class="pc-info-details-chevron" aria-hidden="true">▸</span> ' + esc(summary) + cnt + '</summary><div class="pc-info-details-body">' + bodyHtml + "</div></details>";
+  }
+
+  function pcInfoUsageBar(pct, label, opts = {}) {
+    if (pct == null || Number.isNaN(Number(pct))) return "";
+    const p = Math.max(0, Math.min(100, Number(pct)));
+    const tone = opts.tone || (p >= 92 ? "crit" : (p >= 78 ? "warn" : ""));
+    const sub = opts.sub ? '<span class="pc-info-bar-sub">' + esc(opts.sub) + "</span>" : "";
+    return '<div class="pc-info-bar-row" title="' + esc(label || "") + '"><div class="pc-info-bar-head"><span>' + esc(label) + "</span><strong>" + p + "%</strong>" + sub + '</div><div class="pc-info-bar-track"><div class="pc-info-bar-fill ' + tone + '" style="width:' + p + '%"></div></div></div>';
+  }
+
+  function pcInfoLoadChart(load1, load5, load15, cores) {
+    const loads = [
+      { label: "1 min", val: load1 },
+      { label: "5 min", val: load5 },
+      { label: "15 min", val: load15 },
+    ];
+    const c = Math.max(1, Number(cores) || 1);
+    const bars = loads.map((l) => {
+      const raw = Number(l.val);
+      if (Number.isNaN(raw)) return "";
+      const pct = Math.min(100, Math.round((raw / c) * 100));
+      const tone = pct >= 100 ? "crit" : (pct >= 75 ? "warn" : "");
+      return '<div class="pc-info-load-col"><span class="pc-info-load-lbl">' + esc(l.label) + '</span><div class="pc-info-load-track"><div class="pc-info-load-fill ' + tone + '" style="height:' + pct + '%"></div></div><span class="pc-info-load-val">' + esc(raw.toFixed(2)) + "</span></div>";
+    }).join("");
+    return '<div class="pc-info-load-chart" title="Load average per CPU thread — 100% means all ' + c + ' threads fully busy"><div class="pc-info-load-cols">' + bars + '</div><p class="help-text muted-inline pc-info-load-hint">Load ÷ ' + c + " logical CPUs · 100% = fully saturated</p></div>";
+  }
+
+  function pcInfoFsLabel(p) {
+    if (!p || !p.fstype) return "—";
+    return p.fsver ? (p.fstype + " " + p.fsver) : p.fstype;
+  }
+
+  function pcInfoSectorLabel(disk) {
+    if (!disk.physical_sector_bytes || !disk.logical_sector_bytes) return "—";
+    return disk.physical_sector_bytes + " B phys · " + disk.logical_sector_bytes + " B log";
+  }
+
+  function pcInfoDiskCard(disk) {
+    const parts = disk.partitions || [];
+    const partRows = parts.map((p) => [
+      esc(p.name),
+      esc(p.size_human || "—"),
+      esc(p.parttype_label || p.parttype || "—"),
+      esc(pcInfoFsLabel(p)),
+      esc(p.mountpoint || "—"),
+      esc(p.label || p.partlabel || "—"),
+      '<code class="mono-sm">' + esc(p.uuid || p.partuuid || "—") + "</code>",
+    ]);
+    const smart = disk.smart || {};
+    const trimLabel = disk.trim_supported
+      ? ("Yes (max " + _bytes_human_js(disk.discard_max_bytes) + ")")
+      : "No";
+    const sched = (disk.scheduler || "").replace(/\[|\]/g, "") || "—";
+    const bus = [disk.transport, disk.subsystems].filter(Boolean).join(" · ") || "—";
+    let smartBlock = "";
+    if (smart.model || smart.serial) {
+      smartBlock = '<h4 class="pc-info-subhead">SMART / identity</h4><div class="pc-info-spec-grid">'
+        + pcInfoKv("SMART model", smart.model, { tip: "Self-Monitoring, Analysis and Reporting Technology — drive health data" })
+        + pcInfoKv("SMART serial", smart.serial)
+        + pcInfoKv("SMART firmware", smart.firmware)
+        + pcInfoKv("Rotation", smart.rotation, { tip: "0 = SSD/NVMe, 7200/5400 = spinning rust RPM" })
+        + pcInfoKv("Capacity", smart.capacity)
+        + "</div>";
+    }
+    const partTable = parts.length
+      ? pcInfoTable(["Part", "Size", "Type", "Filesystem", "Mount", "Label", "UUID"], partRows)
+      : '<p class="help-text muted-inline">No partitions detected.</p>';
+    return '<article class="pc-info-disk-card"><header class="pc-info-disk-head"><div><strong class="pc-info-disk-title">' + esc(disk.identity || disk.path) + '</strong><span class="pc-info-disk-role">' + esc(disk.role || "Storage") + '</span></div><span class="pc-info-disk-size">' + esc(disk.size_human || "—") + '</span></header><div class="pc-info-spec-grid">'
+      + pcInfoKv("Device", disk.path, { tip: "Kernel block device path" })
+      + pcInfoKv("What it is", disk.media, { tip: "NVMe SSD, SATA disk, USB stick, etc." })
+      + pcInfoKv("Model", disk.model)
+      + pcInfoKv("Vendor", disk.vendor)
+      + pcInfoKv("Serial", disk.serial)
+      + pcInfoKv("Firmware / rev", disk.firmware || disk.revision)
+      + pcInfoKv("Bus / transport", bus)
+      + pcInfoKv("WWN", disk.wwn, { mono: true, tip: "World Wide Name — unique SCSI/SAS identifier" })
+      + pcInfoKv("HCTL (SCSI)", disk.hctl, { tip: "Host:Channel:Target:LUN for SCSI enumeration" })
+      + pcInfoKv("Partition table", disk.partition_table, { tip: "GPT or MBR — how partitions are laid out" })
+      + pcInfoKv("Sector size", pcInfoSectorLabel(disk))
+      + pcInfoKv("I/O scheduler", sched, { tip: "Kernel algorithm for ordering disk requests" })
+      + pcInfoKv("TRIM / discard", trimLabel, { tip: "SSD wear-levelling hint — lets the drive know which blocks are free" })
+      + pcInfoKv("Removable", disk.removable ? "Yes" : "No")
+      + pcInfoKv("State", disk.state)
+      + "</div>" + smartBlock + '<h4 class="pc-info-subhead">Partitions on this disk (' + parts.length + ")</h4>" + partTable + "</article>";
+  }
+
+  function pcInfoModuleCards(modules) {
+    if (!modules.length) return "";
+    return '<div class="pc-info-module-grid">' + modules.map((m) => {
+      const title = esc(m.slot || m.bank || "DIMM");
+      const type = esc(m.memory_type || m.type_detail || "—");
+      const speed = esc(m.configured_speed || m.speed || "—");
+      return '<article class="pc-info-module-card"><header><strong>' + title + '</strong><span>' + esc(m.size || "—") + '</span></header><div class="pc-info-spec-grid">'
+        + pcInfoKv("Type", type, { tip: "DDR generation from SMBIOS" })
+        + pcInfoKv("Speed", speed)
+        + pcInfoKv("Form", m.form_factor)
+        + pcInfoKv("Maker", m.manufacturer)
+        + pcInfoKv("Part #", m.part_number, { mono: true })
+        + pcInfoKv("Serial", m.serial, { mono: true })
+        + "</div></article>";
+    }).join("") + "</div>";
+  }
+
+  function _bytes_human_js(n) {
+    if (n == null) return "—";
+    const x = Number(n);
+    if (Number.isNaN(x)) return "—";
+    for (const [lim, unit] of [[1024 ** 4, "TiB"], [1024 ** 3, "GiB"], [1024 ** 2, "MiB"], [1024, "KiB"]]) {
+      if (x >= lim) return (x / lim).toFixed(1) + " " + unit;
+    }
+    return x + " B";
+  }
+
+  function _kb_human_js(kb) {
+    if (kb == null) return "—";
+    const n = Number(kb);
+    if (Number.isNaN(n)) return "—";
+    if (n >= 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + " GiB";
+    if (n >= 1024) return (n / 1024).toFixed(1) + " MiB";
+    return n + " KiB";
+  }
+
+  function renderPcInfo(data) {
+    const box = $("pcInfoSections");
+    const metrics = $("pcInfoHeroMetrics");
+    const badge = $("pcInfoBadge");
+    const generated = $("pcInfoGenerated");
+    if (!box) return;
+    if (!data?.ok) {
+      if (metrics) metrics.innerHTML = "";
+      box.innerHTML = '<div class="page-empty"><strong>PC info unavailable</strong><p class="help-text">' + esc(data?.error || "Try refresh.") + "</p></div>";
+      return;
+    }
+    const sys = data.system || {};
+    const cpu = data.cpu || {};
+    const mem = data.memory || {};
+    const storage = data.storage || {};
+    const fw = data.firmware || {};
+    const gpu = data.gpu || {};
+    const power = data.power || {};
+    const runtime = data.runtime || {};
+    const sec = data.security_firmware || {};
+
+    if (badge) {
+      badge.textContent = sys.hostname || "This PC";
+      badge.className = "badge on";
+    }
+    if (generated) {
+      const ts = data.generated_at ? new Date(data.generated_at) : null;
+      generated.textContent = ts && !Number.isNaN(ts.getTime())
+        ? "Inventory generated " + ts.toLocaleString()
+        : "";
+    }
+    if (metrics) {
+      const cpuTemp = (cpu.thermals || [])[0]?.temp_c;
+      const tempSub = cpuTemp != null ? (cpuTemp + "°C") : "—";
+      const memType = mem.module_summary?.type || (mem.modules_note ? "SMBIOS locked" : "—");
+      const memSpeed = mem.module_summary?.speed ? (" · " + mem.module_summary.speed) : "";
+      const cpuShort = ((cpu.model || "—").split("@")[0].trim().slice(0, 28));
+      metrics.innerHTML = [
+        '<div class="page-metric page-metric-a"><div class="lbl">⚡ Processor</div><div class="val">' + esc(cpuShort) + '</div><div class="sub">' + esc(String(cpu.cores_logical || "?")) + " threads · " + esc(tempSub) + "</div></div>",
+        '<div class="page-metric page-metric-b"><div class="lbl">🧠 Memory</div><div class="val">' + esc(mem.total_human || "—") + '</div><div class="sub">' + esc(memType) + esc(memSpeed) + "</div></div>",
+        '<div class="page-metric page-metric-c"><div class="lbl">💾 Storage</div><div class="val">' + esc(storage.total_capacity_human || "—") + '</div><div class="sub">' + esc(String(storage.disk_count || 0)) + " drives · " + esc(String(storage.partition_count || 0)) + " parts</div></div>",
+        '<div class="page-metric page-metric-d"><div class="lbl">⏱ Uptime</div><div class="val">' + esc(sys.uptime_human || "—") + '</div><div class="sub">' + esc(sys.distro?.name || sys.kernel || "Linux") + "</div></div>",
+      ].join("");
+    }
+
+    const sections = [];
+    const archLabel = (sys.architecture || "—") + " (" + (sys.bitness || "—") + ")";
+    const users = (runtime.logged_in_users || []).join(", ") || runtime.user;
+    let sysExtra = "";
+    if (sys.cmdline) {
+      sysExtra = pcInfoDetails("Kernel command line (full)", '<code class="pc-info-code-block">' + esc(sys.cmdline) + "</code>", null);
+    }
+    sections.push(pcInfoSection("🖥", "System & OS",
+      pcInfoIntro(PC_INFO_INTROS.system)
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("Hostname", sys.hostname, { tip: "Short name on the network" })
+      + pcInfoKv("FQDN", sys.fqdn, { tip: "Fully qualified domain name" })
+      + pcInfoKv("Distribution", sys.distro?.name, { tip: "Linux distro and version" })
+      + pcInfoKv("Kernel", sys.kernel, { tip: "Running Linux kernel release" })
+      + pcInfoKv("Architecture", archLabel)
+      + pcInfoKv("Platform", sys.platform)
+      + pcInfoKv("Boot time", sys.boot_time)
+      + pcInfoKv("Uptime", sys.uptime_human)
+      + pcInfoKv("Timezone", sys.timezone)
+      + pcInfoKv("Machine ID", sys.machine_id, { mono: true, tip: "Unique ID in /etc/machine-id" })
+      + pcInfoKv("Logged-in user", users)
+      + pcInfoKv("Processes", runtime.process_count, { tip: "Running processes right now" })
+      + "</div>" + sysExtra));
+
+    const freq = cpu.frequency_mhz || {};
+    const lscpu = cpu.lscpu || {};
+    const cacheRows = (cpu.cache_sysfs || []).map((c) => [
+      esc(("L" + (c.level || "?") + " " + (c.type || "")).trim()),
+      esc(c.size || "—"),
+      esc(c.ways ? (c.ways + "-way") : "—"),
+      esc(c.line_size ? (c.line_size + " B line") : "—"),
+    ]);
+    const thermals = (cpu.thermals || []).map((t) => {
+      const lv = t.temp_c >= 90 ? "hot" : (t.temp_c >= 75 ? "warn" : "");
+      return '<span class="pc-info-thermal-chip ' + lv + '"><span>' + esc(t.zone) + '</span> <strong>' + esc(String(t.temp_c)) + "°C</strong></span>";
+    }).join("");
+    const l1 = (lscpu["l1d cache"] && lscpu["l1i cache"]) ? (lscpu["l1d cache"] + " / " + lscpu["l1i cache"]) : (lscpu["l1d cache"] || lscpu["l1i cache"] || "—");
+    const l23 = (lscpu["l2 cache"] && lscpu["l3 cache"]) ? (lscpu["l2 cache"] + " / " + lscpu["l3 cache"]) : (lscpu["l2 cache"] || lscpu["l3 cache"] || "—");
+    const mhzRange = [freq.min_mhz, freq.max_mhz].filter((x) => x != null).join(" – ") || "—";
+    const loadStr = [cpu.load_1m, cpu.load_5m, cpu.load_15m].map((x) => (x != null && x.toFixed) ? x.toFixed(2) : x).join(" / ");
+    const familyStep = [cpu.family, cpu.stepping].filter(Boolean).join(" / ") || "—";
+    let cpuExtra = pcInfoLoadChart(cpu.load_1m, cpu.load_5m, cpu.load_15m, cpu.cores_logical);
+    if (cacheRows.length) cpuExtra += '<h4 class="pc-info-subhead">CPU cache (sysfs)</h4>' + pcInfoTable(["Cache", "Size", "Associativity", "Line"], cacheRows);
+    if (thermals) cpuExtra += '<h4 class="pc-info-subhead">Thermal zones</h4><div class="pc-info-thermal-row">' + thermals + "</div>";
+    const flags = cpu.flags_sample || [];
+    if (flags.length) {
+      const flagHtml = flags.map((f) => '<span class="pc-info-flag">' + esc(f) + "</span>").join("")
+        + (cpu.flags_count > flags.length ? '<span class="pc-info-flag">+' + (cpu.flags_count - flags.length) + " more</span>" : "");
+      cpuExtra += pcInfoDetails("All CPU feature flags", '<div class="pc-info-flag-cloud">' + flagHtml + "</div>", cpu.flags_count);
+    }
+    sections.push(pcInfoSection("⚡", "Processor",
+      pcInfoIntro(PC_INFO_INTROS.cpu)
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("Model", cpu.model)
+      + pcInfoKv("Vendor", cpu.vendor)
+      + pcInfoKv("Physical cores", cpu.cores_physical, { tip: "Actual CPU cores in the silicon" })
+      + pcInfoKv("Logical CPUs", cpu.cores_logical, { tip: "Threads visible to the OS (includes hyperthreading)" })
+      + pcInfoKv("Sockets", cpu.sockets)
+      + pcInfoKv("Threads / core", cpu.threads_per_core)
+      + pcInfoKv("Family / stepping", familyStep)
+      + pcInfoKv("Microcode", cpu.microcode, { tip: "CPU microcode patch level" })
+      + pcInfoKv("Address sizes", cpu.address_sizes || lscpu["address sizes"])
+      + pcInfoKv("Byte order", cpu.byte_order || lscpu["byte order"])
+      + pcInfoKv("L1d / L1i cache", l1)
+      + pcInfoKv("L2 / L3 cache", l23)
+      + pcInfoKv("Current MHz", freq.current_mhz)
+      + pcInfoKv("Min / max MHz", mhzRange)
+      + pcInfoKv("Load (1 / 5 / 15 m)", loadStr, { tip: "Unix load average — processes waiting for CPU time" })
+      + pcInfoKv("Virtualization", cpu.virtualization)
+      + pcInfoKv("Hypervisor", cpu.hypervisor_vendor || lscpu["hypervisor vendor"] || "—")
+      + pcInfoKv("BogoMIPS", cpu.bogomips, { tip: "Rough kernel benchmark per core (not comparable across CPUs)" })
+      + "</div>" + cpuExtra));
+
+    const memSummary = mem.module_summary || {};
+    const modules = mem.modules || [];
+    const modCount = memSummary.module_count != null ? memSummary.module_count : (modules.length || "—");
+    const memUsedStr = mem.used_pct != null
+      ? ((mem.used_human || "—") + " (" + mem.used_pct + "%)")
+      : (mem.used_human || "—");
+    const swapUsedStr = mem.swap_used_pct != null
+      ? (_kb_human_js(mem.swap_used_kb) + " (" + mem.swap_used_pct + "%)")
+      : "—";
+    let memBody = pcInfoIntro(PC_INFO_INTROS.memory)
+      + '<div class="pc-info-bar-grid">'
+      + pcInfoUsageBar(mem.used_pct, "RAM used", { sub: mem.used_human })
+      + pcInfoUsageBar(mem.swap_used_pct, "Swap used", { sub: _kb_human_js(mem.swap_used_kb) })
+      + "</div>"
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("Total RAM", mem.total_human)
+      + pcInfoKv("Used", memUsedStr)
+      + pcInfoKv("Available", _kb_human_js(mem.available_kb), { tip: "Memory available for new apps without swapping" })
+      + pcInfoKv("Memory type", memSummary.type || "—", { tip: "DDR generation from SMBIOS when available" })
+      + pcInfoKv("RAM speed", memSummary.speed || "—")
+      + pcInfoKv("Form factor", memSummary.form_factor || "—", { tip: "DIMM, SODIMM, etc." })
+      + pcInfoKv("Installed modules", modCount)
+      + pcInfoKv("Swap total", _kb_human_js(mem.swap_total_kb), { tip: "Disk space used when RAM is full" })
+      + pcInfoKv("Swap used", swapUsedStr)
+      + "</div>";
+    if (mem.modules_note) memBody += '<p class="help-text muted-inline">' + esc(mem.modules_note) + "</p>";
+    if (modules.length) {
+      const src = mem.modules_source ? (" · " + mem.modules_source) : "";
+      memBody += '<h4 class="pc-info-subhead">Physical memory modules <span class="muted-inline">' + esc(src) + "</span></h4>" + pcInfoModuleCards(modules);
+    }
+    const memDetails = mem.details || [];
+    if (memDetails.length) {
+      const rows = memDetails.map((d) => [esc(d.key), esc(d.human || d.kb)]);
+      memBody += pcInfoDetails("/proc/meminfo highlights", pcInfoTable(["Metric", "Value"], rows), memDetails.length);
+    }
+    sections.push(pcInfoSection("🧠", "Memory & swap", memBody));
+
+    const physicalDisks = storage.physical_disks || [];
+    const diskCards = physicalDisks.map((d) => pcInfoDiskCard(d)).join("");
+    const rootUsage = storage.root_usage;
+    let storageBody = pcInfoIntro(PC_INFO_INTROS.storage)
+      + (rootUsage ? pcInfoUsageBar(rootUsage.used_pct, "Root filesystem (/)", { sub: rootUsage.used_human + " / " + rootUsage.total_human }) : "")
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("Physical drives", storage.disk_count)
+      + pcInfoKv("Partitions total", storage.partition_count)
+      + pcInfoKv("Combined capacity", storage.total_capacity_human)
+      + "</div>"
+      + '<div class="pc-info-disk-grid">' + (diskCards || '<p class="help-text muted-inline">No block devices found.</p>') + "</div>";
+    const mountRows = (storage.mounts || []).filter((m) => m.usage).slice(0, 24).map((m) => [
+      esc(m.mount),
+      esc(m.fstype),
+      esc(m.usage?.used_human || "—"),
+      esc(m.usage?.total_human || "—"),
+      esc(m.usage?.used_pct != null ? (m.usage.used_pct + "%") : "—"),
+      "<code>" + esc(m.device) + "</code>",
+    ]);
+    if (mountRows.length) {
+      storageBody += pcInfoDetails("Live mount usage", pcInfoTable(["Mount", "FS", "Used", "Size", "%", "Device"], mountRows), mountRows.length);
+    }
+    sections.push(pcInfoSection("💾", "Storage — individual disks", storageBody));
+
+    const boardName = [fw.board_vendor, fw.board_name].filter(Boolean).join(" ") || "—";
+    sections.push(pcInfoSection("🏭", "Firmware & board (DMI)",
+      pcInfoIntro(PC_INFO_INTROS.firmware)
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("System vendor", fw.system_vendor)
+      + pcInfoKv("Product", fw.system_product, { tip: "Model name from manufacturer" })
+      + pcInfoKv("Version", fw.system_version)
+      + pcInfoKv("Serial", fw.system_serial)
+      + pcInfoKv("UUID", fw.system_uuid, { mono: true })
+      + pcInfoKv("Board", boardName)
+      + pcInfoKv("Board version", fw.board_version)
+      + pcInfoKv("BIOS vendor", fw.bios_vendor)
+      + pcInfoKv("BIOS version", fw.bios_version)
+      + pcInfoKv("BIOS date", fw.bios_date)
+      + pcInfoKv("Chassis", fw.chassis_type_label || fw.chassis_type, { tip: "Laptop, desktop tower, mini PC, etc." })
+      + "</div>"));
+
+    const pciRows = (data.pci || []).map((p) => [esc(p.slot), esc(p.description)]);
+    const usbRows = (data.usb || []).map((u) => [
+      esc(u.bus + ":" + u.device),
+      esc(u.id),
+      esc(u.description),
+    ]);
+    let busBody = pcInfoIntro(PC_INFO_INTROS.buses);
+    if (pciRows.length > 8) {
+      busBody += pcInfoDetails("PCI devices", pcInfoTable(["Slot", "Device"], pciRows), pciRows.length);
+    } else if (pciRows.length) {
+      busBody += '<h4 class="pc-info-subhead">PCI devices (' + pciRows.length + ")</h4>" + pcInfoTable(["Slot", "Device"], pciRows);
+    } else {
+      busBody += '<p class="help-text muted-inline">No PCI devices reported.</p>';
+    }
+    if (usbRows.length > 10) {
+      busBody += pcInfoDetails("USB devices", pcInfoTable(["Bus:Dev", "ID", "Description"], usbRows), usbRows.length);
+    } else if (usbRows.length) {
+      busBody += '<h4 class="pc-info-subhead">USB devices (' + usbRows.length + ")</h4>" + pcInfoTable(["Bus:Dev", "ID", "Description"], usbRows);
+    } else {
+      busBody += '<p class="help-text muted-inline">No USB devices reported.</p>';
+    }
+    sections.push(pcInfoSection("🔌", "Expansion buses", busBody));
+
+    const gpuPci = (gpu.pci || []).map((p) => [esc(p.slot), esc(p.description)]);
+    const drmCards = gpu.drm_cards || [];
+    const audioRows = (data.audio || []).map((a) => [esc(a.index), esc(a.id), esc(a.name)]);
+    let avBody = pcInfoIntro(PC_INFO_INTROS.gpu);
+    avBody += gpuPci.length
+      ? pcInfoTable(["Slot", "GPU"], gpuPci)
+      : '<p class="help-text muted-inline">No discrete GPU reported via PCI.</p>';
+    if (drmCards.length) {
+      avBody += '<h4 class="pc-info-subhead">DRM display cards</h4><div class="pc-info-spec-grid">'
+        + drmCards.map((c) => pcInfoKv(c.id, c.vendor_pci || c.status, { tip: "Direct Rendering Manager — kernel graphics device" })).join("")
+        + "</div>";
+    }
+    avBody += '<h4 class="pc-info-subhead">Sound cards</h4>';
+    avBody += audioRows.length
+      ? pcInfoTable(["#", "ID", "Name"], audioRows)
+      : '<p class="help-text muted-inline">No ALSA cards in /proc/asound/cards.</p>';
+    sections.push(pcInfoSection("🎮", "Graphics & audio", avBody));
+
+    const bats = power.batteries || [];
+    let powerBody = pcInfoIntro(PC_INFO_INTROS.power)
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("AC power", power.ac_online === true ? "Online" : (power.ac_online === false ? "On battery" : "—"), { tip: "Whether wall power is connected" })
+      + "</div>";
+    if (bats.length) {
+      powerBody += bats.map((b) => {
+        const charge = b.capacity_pct != null ? (b.capacity_pct + "%") : "—";
+        const volts = b.voltage_v != null ? (b.voltage_v + " V") : "—";
+        const watts = b.power_w != null ? (b.power_w + " W") : "—";
+        return '<article class="pc-info-battery-card"><div class="pc-info-spec-grid">'
+          + pcInfoUsageBar(b.capacity_pct, "Battery · " + (b.name || "pack"), { sub: b.status })
+          + pcInfoKv("Manufacturer", b.manufacturer)
+          + pcInfoKv("Model", b.model)
+          + pcInfoKv("Technology", b.technology)
+          + pcInfoKv("Cycles", b.cycle_count, { tip: "Charge cycles — higher means more wear" })
+          + pcInfoKv("Charge", charge)
+          + pcInfoKv("Voltage", volts)
+          + pcInfoKv("Power", watts)
+          + "</div></article>";
+      }).join("");
+    } else {
+      powerBody += '<p class="help-text muted-inline">No battery detected (desktop or ACPI data unavailable).</p>';
+    }
+    const hwmon = data.sensors?.hwmon || [];
+    if (hwmon.length) {
+      const chips = hwmon.map((chip) => {
+        const temps = (chip.temps || []).map((t) => t.label + ": " + t.temp_c + "°C").join(" · ");
+        const fans = (chip.fans || []).map((f) => f.label + ": " + f.rpm + " RPM").join(" · ");
+        return pcInfoKv(chip.chip, [temps, fans].filter(Boolean).join(" | ") || "—");
+      }).join("");
+      powerBody += '<h4 class="pc-info-subhead">Hardware monitors</h4><div class="pc-info-spec-grid">' + chips + "</div>";
+    }
+    sections.push(pcInfoSection("🔋", "Power & sensors", powerBody));
+
+    const numaRows = (data.numa || []).map((n) => [
+      esc(n.node),
+      esc(n.cpus),
+      esc(_kb_human_js(n.mem_total_kb)),
+      esc(_kb_human_js(n.mem_free_kb)),
+    ]);
+    let secBody = pcInfoIntro(PC_INFO_INTROS.security)
+      + '<div class="pc-info-spec-grid">'
+      + pcInfoKv("EFI firmware", sec.efi_present ? "Present" : "Not detected", { tip: "UEFI firmware — required for Secure Boot" })
+      + pcInfoKv("Secure Boot vars", sec.secure_boot_vars ? "EFI vars present" : "—")
+      + pcInfoKv("AppArmor", sec.apparmor ? "Available" : "—")
+      + pcInfoKv("SELinux", sec.selinux ?? "—")
+      + pcInfoKv("TPM", (sec.tpm_devices || []).join(", ") || "—", { tip: "Trusted Platform Module for disk encryption keys" })
+      + "</div>";
+    if (numaRows.length) {
+      secBody += pcInfoDetails("NUMA nodes", pcInfoTable(["Node", "CPUs", "Mem total", "Mem free"], numaRows), numaRows.length);
+    }
+    sections.push(pcInfoSection("🛡", "Security firmware & topology", secBody));
+
+    box.innerHTML = sections.join("");
+  }
+
+  async function loadPcInfo(force) {
+    const box = $("pcInfoSections");
+    if (box && !box.querySelector(".pc-info-section")) {
+      box.innerHTML = '<div class="page-empty"><strong>Scanning hardware…</strong><p class="help-text">Reading CPU, memory, disks, firmware, PCI, USB, and sensors.</p></div>';
+    }
+    try {
+      const path = force ? "/api/pc-info?force=1" : "/api/pc-info";
+      const data = await apiCached(path, {}, force ? 0 : 30_000);
+      renderPcInfo(data);
+    } catch (e) {
+      if (box) box.innerHTML = '<div class="page-empty"><strong>Could not load PC info</strong><p class="help-text">' + esc(formatFetchError(e, "PC info")) + "</p></div>";
+      toast(String(e), false);
+    }
+  }
   async function loadDoctorsHub(quiet, force) {
     const sub = doctorsHubTab || "overview";
     if (sub === "nordvpn") {
@@ -15610,11 +16449,13 @@
     } else if (sid === "nordvpn") {
       html += `<div class="wizard-status-grid">
         ${wizardStatusRow(!!doc.nord_installed, doc.nord_installed ? "NordVPN CLI installed" : "NordVPN not installed yet")}
-        ${wizardStatusRow(!!doc.logged_in, doc.logged_in ? "Logged in to NordVPN" : "Not logged in — run nordvpn login in Terminal")}
-      </div>`;
+        ${wizardStatusRow(!!doc.logged_in, doc.logged_in ? "Logged in to NordVPN" : "Not logged in — use Nord shell → nordvpn login")}
+      </div>
+      <p class="help-text muted-inline">Install uses the <strong>Nord shell</strong> when sudo needs your password — enter it in the box that appears below the terminal.</p>`;
       html += `<div class="actions"><button type="button" class="btn sm primary" id="btnWizardInstallNord">Install NordVPN</button>
         <button type="button" class="btn sm" id="btnWizardNordPreview">Preview install</button>
-        <button type="button" class="btn sm jump-link" data-view-jump="dashboard/terminal">Open Terminal</button>
+        <button type="button" class="btn sm" id="btnWizardNordLogin">Login in Nord shell</button>
+        <button type="button" class="btn sm jump-link" data-view-jump="dashboard/terminal">Open Nord shell</button>
         <button type="button" class="btn sm" id="btnWizardNordRecheck">Re-check</button></div>`;
       html += `<pre class="mono wizard-code hidden" id="wizardInstallLog"></pre>`;
     } else if (sid === "services") {
@@ -15783,6 +16624,7 @@
     }
     host.querySelector("#btnWizardInstallNord")?.addEventListener("click", () => runWizardInstall(false));
     host.querySelector("#btnWizardNordPreview")?.addEventListener("click", () => runWizardInstall(true));
+    host.querySelector("#btnWizardNordLogin")?.addEventListener("click", () => runWizardNordLoginInShell());
     host.querySelector("#btnWizardNordRecheck")?.addEventListener("click", () => refreshWizardDoctor());
     host.querySelector("#btnWizardCopyPriv")?.addEventListener("click", () => {
       const t = $("wizardPrivCmd")?.textContent || priv.manual_sudo_hint || "";
@@ -15840,16 +16682,57 @@
     await refreshWizardContext();
   }
 
+  function nordInstallShouldUseTerminal(res) {
+    if (!res || res.already_installed) return false;
+    if (res.ok && !res.dry_run && res.can_api_install !== false) return false;
+    return !!(res.use_terminal || res.needs_password || res.shell_script);
+  }
+
+  async function runWizardNordLoginInShell() {
+    sessionStorage.setItem(INSTALL_RETURN_ROUTE_KEY, WIZARD_RETURN_ROUTE);
+    await termRunCommand("nordvpn login\n", "nordvpn login", { scope: "nord", scrollToTerminal: true });
+    toast("Nord shell — complete login in the terminal", true);
+  }
+
+  async function runWizardNordInstallInTerminal(res) {
+    const script = String(res?.shell_script || res?.plan?.shell_script || "").trim();
+    if (!script) {
+      toast("No install script for this distro — see Preview install", false);
+      return false;
+    }
+    sessionStorage.setItem(INSTALL_RETURN_ROUTE_KEY, WIZARD_RETURN_ROUTE);
+    const log = $("wizardInstallLog");
+    log?.classList.remove("hidden");
+    if (log) {
+      log.textContent = "Opening Nord shell…\nEnter your sudo password when the box appears below the terminal.";
+    }
+    await termRunCommand(script, "Install NordVPN", { scope: "nord", scrollToTerminal: true });
+    toast("Nord shell — enter sudo password when prompted", true);
+    return true;
+  }
+
   async function runWizardInstall(dryRun) {
     const log = $("wizardInstallLog");
     log?.classList.remove("hidden");
     if (log) log.textContent = dryRun ? "Preview…" : "Installing…";
     try {
       const res = await api("/api/install-nordvpn", { method: "POST", body: JSON.stringify({ dry_run: !!dryRun }) });
+      if (!dryRun && nordInstallShouldUseTerminal(res)) {
+        await runWizardNordInstallInTerminal(res);
+        return;
+      }
       const lines = [];
       if (res.error) lines.push("ERROR: " + res.error);
-      (res.logs || []).forEach((l) => lines.push((l.ok ? "OK" : "FAIL") + ": " + l.cmd));
+      if (res.already_installed) lines.push("NordVPN is already installed.");
+      (res.logs || []).forEach((l) => {
+        lines.push((l.ok ? "OK" : "FAIL") + ": " + l.cmd);
+        if (l.output) lines.push(l.output);
+      });
+      (res.fix || []).forEach((s) => lines.push("→ " + s));
       (res.next_steps || []).forEach((s) => lines.push("→ " + s));
+      if (dryRun && res.shell_script) {
+        lines.push("", "# Would run in Nord shell:", res.shell_script.trim());
+      }
       if (log) log.textContent = lines.join("\n") || (res.ok ? "Done" : "Failed");
       toast(res.ok ? (dryRun ? "Preview ready" : "Install OK") : (res.error || "Failed"), res.ok);
       await refreshWizardDoctor();
@@ -18276,6 +19159,7 @@
     if (view === "settings") tasks.push(loadSettingsPanel(!!force));
     if (view === "automate") tasks.push(loadAutomate());
     if (view === "logs") tasks.push(loadLogs());
+    if (view === "pcInfo") tasks.push(loadPcInfo(!!force));
     if (view === "help") tasks.push(loadHelpFull(!!force));
     if (view === "dashboard") {
       tasks.push(loadNordRoutingPanel(true, !!force));
@@ -18399,7 +19283,17 @@
   }
 
   initUiDiag();
+  initTopbarStackHeight();
   initPageHowUi();
+  try { initViewRouting(); } catch (e) {
+    console.error("initViewRouting", e);
+    pushUiDiag({
+      title: "Page routing failed",
+      message: String(e?.message || e),
+      source: "initViewRouting",
+      hint: "Click Reset UI cache (top right) or Ctrl+Shift+R",
+    });
+  }
   void bootstrapPageHowPrefs();
 
   // Don't wait for ~400 lines of event bindings — app.js is large and boot was stuck at the end.
@@ -18495,10 +19389,23 @@
     setBusy(true);
     try {
       const res = await api("/api/install-nordvpn", { method: "POST", body: JSON.stringify({ dry_run: !!dryRun }) });
+      if (!dryRun && nordInstallShouldUseTerminal(res)) {
+        setBusy(false);
+        await runWizardNordInstallInTerminal(res);
+        return;
+      }
       const lines = [];
       if (res.error) lines.push("ERROR: " + res.error);
-      (res.logs || []).forEach((l) => lines.push((l.ok ? "OK" : "FAIL") + ": " + l.cmd));
+      if (res.already_installed) lines.push("NordVPN is already installed.");
+      (res.logs || []).forEach((l) => {
+        lines.push((l.ok ? "OK" : "FAIL") + ": " + l.cmd);
+        if (l.output) lines.push(l.output);
+      });
+      (res.fix || []).forEach((s) => lines.push("→ " + s));
       (res.next_steps || []).forEach((s) => lines.push("→ " + s));
+      if (dryRun && res.shell_script) {
+        lines.push("", "# Would run in Nord shell:", res.shell_script.trim());
+      }
       if (log) log.textContent = lines.join("\n") || (res.ok ? "Done" : "Failed");
       logActivity("install", dryRun ? "Preview" : (res.ok ? "NordVPN installed" : res.error), res.ok);
       toast(res.ok ? "Install OK" : (res.error || "Failed"), res.ok);
@@ -18839,6 +19746,8 @@
   $("btnSpectrumZoomReset")?.addEventListener("click", () => {
     resetSpectrumView();
     renderSpectrumCharts();
+    renderSpectrumSsidButtons();
+    renderSpectrumScanTable();
   });
   $("btnSpectrumRescan")?.addEventListener("click", () =>
     doAction({ action: "wifi_rescan" }, "Rescan WiFi").then(() => loadSpectrum(true)));
@@ -18852,6 +19761,7 @@
     resetSpectrumView();
     renderSpectrumBandSwitches(spectrumData?.all_bands || spectrumData?.bands);
     renderSpectrumCharts();
+    renderSpectrumSsidButtons();
     renderSpectrumScanTable();
   });
   $("btnSpectrumAllOff")?.addEventListener("click", () => {
@@ -18860,6 +19770,7 @@
     resetSpectrumView();
     renderSpectrumBandSwitches(spectrumData?.all_bands || spectrumData?.bands);
     renderSpectrumCharts();
+    renderSpectrumSsidButtons();
     renderSpectrumScanTable();
   });
   $("btnBtSpectrumRefresh")?.addEventListener("click", () => loadBluetooth(true, { rescan: false }));
@@ -18962,6 +19873,7 @@
   $("btnNordDocRefresh")?.addEventListener("click", () => loadNordDoctor(true));
   $("btnNetDocRefresh")?.addEventListener("click", () => loadDoctorsHub(true, true));
   $("btnConnDetailRefresh")?.addEventListener("click", () => loadConnectionDetails(true));
+  $("btnPcInfoRefresh")?.addEventListener("click", () => loadPcInfo(true));
   $("btnWifiRescan")?.addEventListener("click", () => doAction({ action: "wifi_rescan" }, "Rescan").then(() => loadWifiHub(true)));
   $("btnWifiSync")?.addEventListener("click", () => doAction({ action: "wifi_sync_profiles" }, "Sync").then(() => loadWifiHub(true)));
   $("btnWifiConnectSsid")?.addEventListener("click", () => {
@@ -19183,15 +20095,6 @@
   toggleBellDropdown(false);
   applyButtonTitles();
   initMeshnetPageActions();
-  try { initViewRouting(); } catch (e) {
-    console.error("initViewRouting", e);
-    pushUiDiag({
-      title: "Page routing failed",
-      message: String(e?.message || e),
-      source: "initViewRouting",
-      hint: "Click Reset UI cache (top right) or Ctrl+Shift+R",
-    });
-  }
   setInterval(() => loadState({ force: true, silent: true }), 15000);
   setInterval(pollBrowserAlerts, 30000);
 

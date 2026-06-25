@@ -28,7 +28,6 @@
               <span class="sys-clock-sep" aria-hidden="true">·</span>
               <span class="sys-clock-date" id="topbarClockDate">—</span>
             </span>
-            <span class="sys-chip sys-host" id="topbarHost" title="Hostname">Host</span>
             <button type="button" class="sys-chip sys-vpn jump-link" id="vpnBadge" data-view-jump="dashboard/connect" title="NordVPN connection">VPN —</button>
             <button type="button" class="sys-chip sys-nord-fw jump-link" id="topbarNordFw" data-view-jump="dashboard/nord-firewall" title="NordVPN firewall">Nord FW —</button>
             <button type="button" class="sys-chip sys-ufw jump-link" id="topbarUfw" data-view-jump="network/host-ufw" title="Linux UFW firewall">UFW —</button>
@@ -1994,6 +1993,14 @@
                 <div class="spectrum-band-switches" id="spectrumBandSwitches" role="group" aria-label="Frequency band filters"></div>
               </div>
 
+              <div class="spectrum-ssid-bar">
+                <div class="spectrum-ssid-bar-head">
+                  <h3>Networks</h3>
+                  <span class="muted-inline">Click any network to centre it on the chart · dual-band SSIDs show separate buttons</span>
+                </div>
+                <div class="spectrum-ssid-buttons" id="spectrumSsidButtons" role="group" aria-label="Detected WiFi networks"></div>
+              </div>
+
               <div class="spectrum-display-wrap">
                 <div class="spectrum-chart-head">
                   <h3>Power spectrum (dBm)</h3>
@@ -2003,10 +2010,9 @@
                       <button type="button" class="btn sm" id="btnSpectrumZoomReset" title="Reset zoom to fit">Fit</button>
                       <button type="button" class="btn sm" id="btnSpectrumZoomIn" title="Zoom in">+</button>
                     </div>
-                    <div class="spectrum-legend" id="spectrumLegend"></div>
                   </div>
                 </div>
-                <p class="spectrum-zoom-hint muted-inline">Scroll to zoom · drag to pan</p>
+                <p class="spectrum-zoom-hint muted-inline">Scroll to zoom · drag to pan · click a network above to centre</p>
                 <div class="spectrum-canvas-stack spectrum-canvas-interactive spectrum-rf-chart">
                   <canvas id="spectrumCanvas" class="spectrum-canvas" height="280" aria-label="WiFi spectrum by frequency"></canvas>
                   <div class="spectrum-chart-empty hidden" id="spectrumEmpty">No channels in selected bands — enable a band above or rescan WiFi.</div>
@@ -2858,6 +2864,31 @@
                 </div>
               </div>
               <div id="customShellPanelMount" class="custom-shell-panel-mount"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- PC INFO (Tools) -->
+        <section class="view" id="viewPcInfo">
+          <div class="stage-scroll">
+            <section class="panel glass page-premium pc-info-hub">
+              <header class="page-hero pc-info-hero">
+                <div class="page-hero-main">
+                  <div class="page-hero-title">
+                    <h2>PC info</h2>
+                    <span class="badge" id="pcInfoBadge">—</span>
+                  </div>
+                  <p class="help-text">Deep hardware inventory for <strong>this</strong> computer — every section explains what you are looking at. Live RAM, swap, and disk bars; load charts; per-DIMM cards; collapsible PCI/USB lists when there is a lot to show. Hover any field for a quick glossary tip.</p>
+                  <p class="help-text muted-inline" id="pcInfoGenerated"></p>
+                </div>
+                <div class="page-hero-actions">
+                  <button type="button" class="btn sm refresh-btn" id="btnPcInfoRefresh" title="Rescan hardware and refresh all sections">Refresh</button>
+                </div>
+              </header>
+              <div class="page-metrics pc-info-hero-metrics" id="pcInfoHeroMetrics"></div>
+              <div class="pc-info-sections" id="pcInfoSections">
+                <div class="page-empty"><strong>Loading hardware inventory…</strong></div>
+              </div>
             </section>
           </div>
         </section>

@@ -337,6 +337,8 @@ bash -n scripts/build-deb.sh && grn "build-deb.sh syntax" || red "build-deb.sh s
 bash -n scripts/uninstall.sh && grn "uninstall.sh syntax" || red "uninstall.sh syntax"
 
 bash -n install.sh && grn "install.sh syntax" || red "install.sh syntax"
+sh install.sh --help >/dev/null && grn "install.sh works under sh (dash)" || red "install.sh dash"
+sh scripts/uninstall.sh --help >/dev/null && grn "uninstall.sh works under sh (dash)" || red "uninstall.sh dash"
 bash -n scripts/install-ufw-sudoers.sh && grn "install-ufw-sudoers.sh syntax" || red "install-ufw-sudoers.sh syntax"
 bash -n scripts/install-privilege-sudoers.sh && grn "install-privilege-sudoers.sh syntax" || red "install-privilege-sudoers.sh syntax"
 

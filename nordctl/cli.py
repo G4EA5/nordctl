@@ -182,6 +182,10 @@ def main() -> None:
     p_svc_sub = p_svc.add_subparsers(dest="service_cmd")
     p_svc_sub.add_parser("status", help="Show UI service and nordvpnd status")
     p_svc_sub.add_parser("install", help="Write unit, start UI, enable at login")
+    p_svc_sub.add_parser(
+        "bootstrap",
+        help="Smart install/start — free port if busy, start UI, wait until it responds",
+    )
     p_svc_sub.add_parser("uninstall", help="Disable and remove UI unit")
     for cmd in ("start", "stop", "restart", "enable", "disable"):
         p_svc_sub.add_parser(cmd, help=f"{cmd} nordctl UI service")
@@ -687,6 +691,7 @@ def main() -> None:
 
     if args.command == "service":
         from nordctl.service_mgr import (
+            bootstrap_ui_service,
             control_nordvpnd,
             control_ui_service,
             install_ui_service,
@@ -698,6 +703,8 @@ def main() -> None:
         cmd = args.service_cmd or "status"
         if cmd == "install":
             result = install_ui_service(enable=True)
+        elif cmd == "bootstrap":
+            result = bootstrap_ui_service(enable=True)
         elif cmd == "uninstall":
             result = uninstall_ui_service()
         elif cmd == "nordvpnd":
@@ -718,6 +725,11 @@ def main() -> None:
                     print(f"  Also running manually (PIDs: {', '.join(map(str, ui.get('manual_pids') or []))})")
                 print(f"  Login autostart: {'yes' if ui.get('enabled_at_login') else 'no'}")
                 print(f"  URL: {ui.get('url', '?')}")
+                if ui.get("port_mismatch"):
+                    print(
+                        f"  Note: config port {ui.get('configured_port')} but UI listens on "
+                        f"{ui.get('live_port')} — run: nordctl service restart"
+                    )
                 print(f"Nord ({nord.get('unit')}): {nord.get('status_text', '?')} (boot: {nord.get('enabled_text', '?')})")
             elif cmd == "nordvpnd":
                 if result.get("needs_password"):
@@ -731,6 +743,15 @@ def main() -> None:
             elif result.get("needs_password"):
                 print("ERROR: sudo password required", file=sys.stderr)
                 print(result.get("manual") or result.get("error"), file=sys.stderr)
+            elif cmd == "bootstrap":
+                for note in result.get("notes") or []:
+                    print(note)
+                if result.get("ready"):
+                    print(f"Dashboard ready at {result.get('url')}")
+                    if result.get("method"):
+                        print(f"Started via: {result.get('method')}")
+                else:
+                    print(result.get("error") or "Bootstrap failed", file=sys.stderr)
             else:
                 print(result.get("note") or result.get("output") or ("OK" if result.get("ok") else result.get("error")))
         sys.exit(0 if result.get("ok", True) else 1)
