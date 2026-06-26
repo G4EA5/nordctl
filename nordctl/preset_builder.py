@@ -95,7 +95,7 @@ COMPAT_INTRO = (
 BUILDER_FIELD_HELP: dict[str, str] = {
     "label": "Friendly name shown on your preset cards.",
     "filename": "YAML file name under ~/.config/nordctl/presets/ (lowercase, hyphens).",
-    "summary": "One line shown as “What it does” on the preset card — e.g. Stream ITV via Smart DNS on WiFi.",
+    "summary": "One line shown as “What it does” on the preset card — e.g. Stream UK TV via Smart DNS on WiFi.",
     "connection_mode": "What the preset does first — normal VPN, Smart DNS without tunnel, Meshnet-only, disconnect, or settings-only.",
     "server_group": "Specialty Nord servers (Double VPN, P2P, …). When set, country/city connect is not used.",
     "country_source": "Where the VPN connects — saved My places country, pick here, or leave unset.",

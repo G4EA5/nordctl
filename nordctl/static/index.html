@@ -558,7 +558,7 @@
                 <strong class="preset-builder-how-title page-how-title">Help</strong>
                 <ol class="preset-builder-how-steps page-how-steps">
                   <li><span class="wf-step-num">1</span> Click <strong>Create a new preset</strong> below.</li>
-                  <li><span class="wf-step-num">2</span> Give it a <strong>name</strong> and a one-line <strong>What it does</strong> (shown on the preset card — e.g. “Stream ITV — Smart DNS on WiFi”). Then pick country, Double VPN, Meshnet, Smart DNS, etc.</li>
+                  <li><span class="wf-step-num">2</span> Give it a <strong>name</strong> and a one-line <strong>What it does</strong> (shown on the preset card — e.g. “Stream UK TV — Smart DNS on WiFi”). Then pick country, Double VPN, Meshnet, Smart DNS, etc.</li>
                   <li><span class="wf-step-num">3</span> Read the <strong>help text</strong> under each option. <strong>Default</strong> / <strong>Don't include</strong> means skip. <strong>Grey rows</strong> are blocked — orange text explains why.</li>
                   <li><span class="wf-step-num">4</span> If you include <strong>Meshnet peer connect</strong>, type the peer hostname in the box that appears (e.g. <code>my-phone.nord</code>).</li>
                   <li><span class="wf-step-num">5</span> Click <strong>Save preset</strong> — it is saved to disk and listed under <strong>My presets</strong> on the My places tab.</li>
@@ -616,22 +616,22 @@
                     <button type="button" class="btn sm" id="btnTogglePresetBuilderHead" aria-expanded="true" title="Fold this section">Fold ↑</button>
                   </div>
                   <div class="preset-builder-body" id="presetBuilderBody">
-                  <p class="help-text" id="presetBuilderHint">Give the preset a <strong>name</strong> (required) and <strong>What it does</strong> (one line for the card — e.g. streaming ITV). Everything else is optional — leave toggles on <strong>Default</strong> to skip them. Grey rows are blocked by another choice (see the orange note on that row).</p>
+                  <p class="help-text" id="presetBuilderHint">Give the preset a <strong>name</strong> (required) and <strong>What it does</strong> (one line for the card — e.g. UK TV streaming). Everything else is optional — leave toggles on <strong>Default</strong> to skip them. Grey rows are blocked by another choice (see the orange note on that row).</p>
                   <div class="preset-builder-compat glass" id="presetBuilderCompatIntro"></div>
                   <div id="presetBuilderWarnings" class="preset-builder-warnings hidden"></div>
                   <form id="presetBuilderForm" class="preset-builder-form">
                     <fieldset class="preset-builder-section">
                       <legend>Basics <span class="pb-legend-note">— name required; What it does shown on preset cards</span></legend>
                       <div class="pb-field" data-pb-field="label">
-                        <div class="pb-field-main"><label>Preset name <input type="text" id="pbLabel" name="label" placeholder="Streaming ITV" required autocomplete="off" /></label></div>
+                        <div class="pb-field-main"><label>Preset name <input type="text" id="pbLabel" name="label" placeholder="UK TV streaming" required autocomplete="off" /></label></div>
                         <p class="pb-field-help" data-pb-help="label"></p>
                       </div>
                       <div class="pb-field pb-field-wide" data-pb-field="summary">
-                        <div class="pb-field-main"><label>What it does <input type="text" id="pbSummary" name="summary" placeholder="e.g. Stream ITV — Smart DNS on WiFi, no VPN tunnel" autocomplete="off" /></label></div>
+                        <div class="pb-field-main"><label>What it does <input type="text" id="pbSummary" name="summary" placeholder="e.g. Stream UK TV — Smart DNS on WiFi, no VPN tunnel" autocomplete="off" /></label></div>
                         <p class="pb-field-help" data-pb-help="summary"></p>
                       </div>
                       <div class="pb-field" data-pb-field="filename">
-                        <div class="pb-field-main"><label>File name <input type="text" id="pbFilename" name="filename" placeholder="streaming-itv" autocomplete="off" /></label></div>
+                        <div class="pb-field-main"><label>File name <input type="text" id="pbFilename" name="filename" placeholder="uk-streaming" autocomplete="off" /></label></div>
                         <p class="pb-field-help" data-pb-help="filename"></p>
                       </div>
                     </fieldset>
