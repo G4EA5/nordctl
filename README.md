@@ -131,7 +131,14 @@ One screen before install: optional NordVPN client, start dashboard at login, op
 
 ### Debian/Ubuntu (.deb)
 
-Build and install locally (adds an **nordctl** entry in your app menu):
+Download from [GitHub Releases](https://github.com/G4EA5/nordctl/releases) (adds an **nordctl** entry in your app menu):
+
+```bash
+curl -LO https://github.com/G4EA5/nordctl/releases/download/v0.2.0/nordctl_0.2.0_all.deb
+sudo apt install ./nordctl_0.2.0_all.deb
+```
+
+Or build locally from a git clone:
 
 ```bash
 git clone https://github.com/G4EA5/nordctl.git
@@ -159,11 +166,12 @@ nordctl install-nordvpn     # optional, separate step
 
 | Format | Command |
 |--------|---------|
-| **Debian/Ubuntu .deb** | `bash scripts/build-deb.sh` → `dist/nordctl_*.deb` — adds **nordctl** app menu launcher |
+| **Debian/Ubuntu .deb** | [Releases](https://github.com/G4EA5/nordctl/releases) or `bash scripts/build-deb.sh` → app menu launcher |
 | **Arch (AUR template)** | [packaging/arch/PKGBUILD](packaging/arch/PKGBUILD) |
-| **Uninstall** | `bash scripts/uninstall.sh [--purge-config]` |
+| **Uninstall .deb** | `sudo apt remove nordctl` |
+| **Uninstall git install** | `bash scripts/uninstall.sh [--purge-config]` |
 
-PyPI releases are published on [GitHub Release](https://github.com/G4EA5/nordctl/releases) via CI.
+Releases: `.deb` packages and (when enabled) PyPI wheels at [github.com/G4EA5/nordctl/releases](https://github.com/G4EA5/nordctl/releases).
 
 ---
 
