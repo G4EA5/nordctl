@@ -129,6 +129,19 @@ cd nordctl
 
 One screen before install: optional NordVPN client, start dashboard at login, open browser. Everything else is in the dashboard **Wizard**. Details: [docs/INSTALL_WIZARD.md](docs/INSTALL_WIZARD.md).
 
+### Debian/Ubuntu (.deb)
+
+Build and install locally (adds an **nordctl** entry in your app menu):
+
+```bash
+git clone https://github.com/G4EA5/nordctl.git
+cd nordctl
+bash scripts/build-deb.sh
+sudo apt install ./dist/nordctl_*_all.deb
+```
+
+Open **nordctl** from the application menu (or run `nordctl-open`). First launch creates config, starts the dashboard, opens the browser, and enables the UI at user login. Uninstall: `sudo apt remove nordctl` (keeps `~/.config/nordctl/`).
+
 ### PyPI (manual steps)
 
 For advanced users or packaging — you run init and start the UI yourself:
@@ -146,7 +159,7 @@ nordctl install-nordvpn     # optional, separate step
 
 | Format | Command |
 |--------|---------|
-| **Debian/Ubuntu .deb** | `bash scripts/build-deb.sh` → `dist/nordctl_*.deb` |
+| **Debian/Ubuntu .deb** | `bash scripts/build-deb.sh` → `dist/nordctl_*.deb` — adds **nordctl** app menu launcher |
 | **Arch (AUR template)** | [packaging/arch/PKGBUILD](packaging/arch/PKGBUILD) |
 | **Uninstall** | `bash scripts/uninstall.sh [--purge-config]` |
 

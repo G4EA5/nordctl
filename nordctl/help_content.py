@@ -72,7 +72,7 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
             "html": """
 <p><strong>nordctl</strong> is a free helper for NordVPN on Linux. Install Nord’s official client, log in once, then use one-click presets and the web dashboard.</p>
 <h4>Quick start</h4>
-<ol class="steps"><li><strong>Install</strong> — clone the repo and run <code>./install.sh</code> (installs CLI, dashboard, config, and opens the UI)</li>
+<ol class="steps"><li><strong>Install</strong> — <code>./install.sh</code> from git, or install the <strong>.deb</strong> and open <strong>nordctl</strong> from your app menu</li>
 <li><strong>Wizard</strong> — top bar <strong>Wizard</strong> or <code>#dashboard/wizard</code> for Nord login, WiFi, country, and your first preset</li>
 <li><strong>Connect</strong> — use a preset card or Connect on the dashboard</li></ol>
 <p>No Nord account yet? <code>nordctl demo</code> runs the UI with simulated VPN state.</p>
@@ -107,6 +107,10 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
 cd nordctl
 ./install.sh</pre>
 <p><code>./install.sh</code> installs nordctl, presets, config, and the dashboard in one run. <strong>One screen</strong> — optional NordVPN client, dashboard at login, open browser. WiFi, country, and Nord login are in the dashboard <strong>Wizard</strong>, not the installer.</p>
+<h4>Debian/Ubuntu .deb (app menu launcher)</h4>
+<pre class="code-block">bash scripts/build-deb.sh
+sudo apt install ./dist/nordctl_*_all.deb</pre>
+<p>Search for <strong>nordctl</strong> in your application menu (or run <code>nordctl-open</code>). The first launch creates config, starts the dashboard, opens your browser, and enables the UI at <strong>user login</strong> (<code>nordctl-ui.service</code>). Requires the official NordVPN Linux client for VPN presets.</p>
 <h4>PyPI (manual — you start each step)</h4>
 <pre class="code-block">pip install --user nordctl
 pip install 'nordctl[tray]'   # optional system tray
@@ -114,9 +118,10 @@ nordctl init
 nordctl service bootstrap   # or: nordctl serve
 nordctl install-nordvpn     # optional</pre>
 <h4>Other packages</h4>
-<ul class="steps"><li>Debian/Ubuntu: <code>bash scripts/build-deb.sh</code></li>
+<ul class="steps"><li>Build .deb: <code>bash scripts/build-deb.sh</code> → <code>dist/nordctl_*.deb</code></li>
 <li>Arch: see <code>packaging/arch/PKGBUILD</code></li>
-<li>Uninstall: <code>bash scripts/uninstall.sh</code></li></ul>
+<li>Uninstall .deb: <code>sudo apt remove nordctl</code> (config in <code>~/.config/nordctl/</code> is kept)</li>
+<li>Uninstall git install: <code>bash scripts/uninstall.sh</code></li></ul>
 <p>Before publishing or sharing the repo, run <code>bash scripts/audit-public.sh</code> — it blocks personal hostnames and environment-specific strings.</p>
 """,
         },
@@ -127,11 +132,11 @@ nordctl install-nordvpn     # optional</pre>
 <p>nordctl has three separate “services” — do not confuse them:</p>
 <table class="help-table"><tr><th>Component</th><th>What it does</th><th>Autostart</th></tr>
 <tr><td><code>nordvpnd</code></td><td>Nord’s VPN daemon (required for VPN)</td><td>System boot — <code>sudo systemctl enable nordvpnd</code></td></tr>
-<tr><td><code>nordctl-ui</code></td><td>Web dashboard (<code>nordctl serve</code>)</td><td>User login — Advanced → Enable at login</td></tr>
+<tr><td><code>nordctl-ui</code></td><td>Web dashboard (<code>nordctl serve</code>)</td><td>User login — app menu / <code>nordctl-open</code>, or Advanced → Enable at login</td></tr>
 <tr><td><code>nordctl-tray</code></td><td>System tray icon (optional)</td><td>User login — <code>nordctl tray install</code></td></tr></table>
 <h4>Web UI — manual vs systemd</h4>
 <ul class="steps"><li><strong>Manual:</strong> <code>nordctl serve</code> — runs until Ctrl+C. Good for testing.</li>
-<li><strong>Service:</strong> <code>nordctl service install</code> — writes <code>~/.config/systemd/user/nordctl-ui.service</code>, starts now, optional enable at login.</li></ul>
+<li><strong>Service:</strong> <code>nordctl service install</code> or <code>nordctl service bootstrap</code> — writes <code>~/.config/systemd/user/nordctl-ui.service</code>, starts now, enables at login. Debian .deb users: the app menu runs <code>bootstrap</code> on first open.</li></ul>
 <h4>CLI reference</h4>
 <pre class="code-block">nordctl service status
 nordctl service install          # write unit + start + enable at login
@@ -843,7 +848,8 @@ nordctl factory-reset --resolv   # also restore /etc/resolv.conf (sudo)</pre>
             "title": "FAQ",
             "html": """
 <dl class="faq"><dt>Does nordctl include NordVPN?</dt><dd>No — official package only.</dd>
-<dt>Does nordctl run as a service?</dt><dd>The web UI can run manually (<code>nordctl serve</code>) or as a systemd user service (<code>nordctl service install</code>). Nord VPN itself uses the system service <code>nordvpnd</code>.</dd>
+<dt>Does nordctl run as a service?</dt><dd>The web UI can run manually (<code>nordctl serve</code>) or as a systemd user service (<code>nordctl service install</code> / <code>bootstrap</code>). Debian .deb: open <strong>nordctl</strong> from the app menu — first launch enables UI at login. Nord VPN itself uses the system service <code>nordvpnd</code>.</dd>
+<dt>Ubuntu .deb / app menu?</dt><dd>Build with <code>bash scripts/build-deb.sh</code>, install <code>sudo apt install ./dist/nordctl_*_all.deb</code>, then launch <strong>nordctl</strong> from Activities. Uninstall: <code>sudo apt remove nordctl</code>.</dd>
 <dt>System tray?</dt><dd>Optional: <code>pip install 'nordctl[tray]' && nordctl tray install</code> or say yes during <code>./install.sh</code>.</dd>
 <dt>Why no login in the UI?</dt><dd>Security — use terminal <code>nordvpn login</code>.</dd>
 <dt>Is the UI exposed to the network?</dt><dd>Default is <strong>This computer only</strong> (<code>127.0.0.1</code>). You can enable Home LAN in <strong>Advanced → Services → Network access</strong> so other devices on <code>192.168.x</code> or <code>10.x</code> can connect — only on networks you trust.</dd>

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=nordctl
+GenericName=VPN Control
+Comment=Local web dashboard for NordVPN on Linux
+Exec=/usr/bin/nordctl-open
+Icon=nordctl
+Categories=Network;Security;
+Keywords=VPN;NordVPN;Smart DNS;Meshnet;
+StartupNotify=true
+Terminal=false

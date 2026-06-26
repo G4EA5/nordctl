@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>nordctl</id>
+  <name>nordctl</name>
+  <summary>Preset-driven NordVPN control for Linux</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      Unofficial local web dashboard and CLI for the NordVPN Linux client.
+      Not affiliated with Nord Security.
+    </p>
+    <p>Requires the official NordVPN Linux app and an active subscription for VPN features.</p>
+  </description>
+  <launchable type="desktop-id">nordctl.desktop</launchable>
+  <url type="homepage">https://github.com/G4EA5/nordctl</url>
+  <provides>
+    <binary>nordctl</binary>
+    <binary>nordctl-open</binary>
+  </provides>
+  <categories>
+    <category>Network</category>
+    <category>Security</category>
+  </categories>
+</component>

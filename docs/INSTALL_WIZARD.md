@@ -61,6 +61,28 @@ API: `GET /api/setup-wizard`, actions `setup_wizard_advance` / `setup_wizard_ski
 
 ---
 
+## Debian/Ubuntu .deb (app menu)
+
+For users who prefer a package over git clone:
+
+```bash
+bash scripts/build-deb.sh
+sudo apt install ./dist/nordctl_*_all.deb
+```
+
+| Step | What happens |
+|------|----------------|
+| Package install | CLI at `/usr/bin/nordctl`, presets under `/usr/share/nordctl/` |
+| App menu | **nordctl** launcher (`nordctl-open`) — icon in Activities / app grid |
+| First launch | `nordctl init` (if needed) → `service bootstrap` → browser opens |
+| Login autostart | `nordctl-ui` user systemd unit enabled (starts when you log in) |
+
+Uninstall package only: `sudo apt remove nordctl`. Config and user service unit under `~/.config/` are kept unless you remove them.
+
+Git clone + `./install.sh` still installs the full venv-based stack in `~/.local/` and is the path used for development.
+
+---
+
 ## Manual install (advanced)
 
 Use this when you install from **PyPI**, package a `.deb`, or want full control over each step. It is **not** the path the README optimizes for.

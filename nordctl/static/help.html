@@ -33,9 +33,9 @@
       <h2>Getting started</h2>
       <p><strong>nordctl</strong> is a free, open-source helper for NordVPN on Linux. It does <em>not</em> include NordVPN itself — you install Nord’s official client once, log in, then use nordctl for one-click presets and a friendly web UI.</p>
       <ol class="steps">
-        <li>Install nordctl: <code>pip install nordctl</code> or <code>./install.sh</code> (one checklist screen — optional NordVPN client, dashboard at login)</li>
-        <li>Initialize: <code>nordctl init</code> (or let <code>./install.sh</code> do this)</li>
-        <li>Start the UI: <code>nordctl serve</code> — open top bar <strong>Wizard</strong> or <code>#dashboard/wizard</code> for WiFi, country, and Nord setup</li>
+        <li>Install nordctl: <code>./install.sh</code> from git, or install the <strong>.deb</strong> and open <strong>nordctl</strong> from your app menu</li>
+        <li>Initialize: <code>nordctl init</code> (done automatically by <code>./install.sh</code> or the app menu on first launch)</li>
+        <li>Start the UI: app menu <strong>nordctl</strong>, <code>nordctl-open</code>, or <code>nordctl service bootstrap</code> — then use top bar <strong>Wizard</strong> for WiFi, country, and Nord setup</li>
         <li>Install NordVPN (if using VPN presets): <code>nordctl install-nordvpn</code></li>
         <li>Log in: <code>nordvpn login</code></li>
         <li>Edit <code>~/.config/nordctl/config.yaml</code> — or use the dashboard wizard / WiFi tab instead of manual YAML</li>
