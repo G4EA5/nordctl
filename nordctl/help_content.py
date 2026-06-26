@@ -72,7 +72,7 @@ _HELP_SECTIONS_RAW: list[dict[str, Any]] = [
             "html": """
 <p><strong>nordctl</strong> is a free helper for NordVPN on Linux. Install Nord’s official client, log in once, then use one-click presets and the web dashboard.</p>
 <h4>Quick start</h4>
-<ol class="steps"><li><strong>Install</strong> — <code>./install.sh</code> from git, or install the <strong>.deb</strong> and open <strong>nordctl</strong> from your app menu</li>
+<ol class="steps"><li><strong>Install</strong> — <a href="https://github.com/G4EA5/nordctl/releases">.deb from GitHub Releases</a>, or <code>./install.sh</code> from git; open <strong>nordctl</strong> from your app menu</li>
 <li><strong>Wizard</strong> — top bar <strong>Wizard</strong> or <code>#dashboard/wizard</code> for Nord login, WiFi, country, and your first preset</li>
 <li><strong>Connect</strong> — use a preset card or Connect on the dashboard</li></ol>
 <p>No Nord account yet? <code>nordctl demo</code> runs the UI with simulated VPN state.</p>
@@ -108,8 +108,10 @@ cd nordctl
 ./install.sh</pre>
 <p><code>./install.sh</code> installs nordctl, presets, config, and the dashboard in one run. <strong>One screen</strong> — optional NordVPN client, dashboard at login, open browser. WiFi, country, and Nord login are in the dashboard <strong>Wizard</strong>, not the installer.</p>
 <h4>Debian/Ubuntu .deb (app menu launcher)</h4>
-<pre class="code-block">bash scripts/build-deb.sh
-sudo apt install ./dist/nordctl_*_all.deb</pre>
+<p>Download from <a href="https://github.com/G4EA5/nordctl/releases" target="_blank" rel="noopener">GitHub Releases</a> (or build from source):</p>
+<pre class="code-block">curl -LO https://github.com/G4EA5/nordctl/releases/download/v0.2.0/nordctl_0.2.0_all.deb
+sudo apt install ./nordctl_0.2.0_all.deb</pre>
+<p>Or build locally: <code>bash scripts/build-deb.sh</code> then <code>sudo apt install ./dist/nordctl_*_all.deb</code>.</p>
 <p>Search for <strong>nordctl</strong> in your application menu (or run <code>nordctl-open</code>). The first launch creates config, starts the dashboard, opens your browser, and enables the UI at <strong>user login</strong> (<code>nordctl-ui.service</code>). Requires the official NordVPN Linux client for VPN presets.</p>
 <h4>PyPI (manual — you start each step)</h4>
 <pre class="code-block">pip install --user nordctl
@@ -118,7 +120,7 @@ nordctl init
 nordctl service bootstrap   # or: nordctl serve
 nordctl install-nordvpn     # optional</pre>
 <h4>Other packages</h4>
-<ul class="steps"><li>Build .deb: <code>bash scripts/build-deb.sh</code> → <code>dist/nordctl_*.deb</code></li>
+<ul class="steps"><li>Download .deb: <a href="https://github.com/G4EA5/nordctl/releases" target="_blank" rel="noopener">GitHub Releases</a> (or build: <code>bash scripts/build-deb.sh</code>)</li>
 <li>Arch: see <code>packaging/arch/PKGBUILD</code></li>
 <li>Uninstall .deb: <code>sudo apt remove nordctl</code> (config in <code>~/.config/nordctl/</code> is kept)</li>
 <li>Uninstall git install: <code>bash scripts/uninstall.sh</code></li></ul>
@@ -849,7 +851,7 @@ nordctl factory-reset --resolv   # also restore /etc/resolv.conf (sudo)</pre>
             "html": """
 <dl class="faq"><dt>Does nordctl include NordVPN?</dt><dd>No — official package only.</dd>
 <dt>Does nordctl run as a service?</dt><dd>The web UI can run manually (<code>nordctl serve</code>) or as a systemd user service (<code>nordctl service install</code> / <code>bootstrap</code>). Debian .deb: open <strong>nordctl</strong> from the app menu — first launch enables UI at login. Nord VPN itself uses the system service <code>nordvpnd</code>.</dd>
-<dt>Ubuntu .deb / app menu?</dt><dd>Build with <code>bash scripts/build-deb.sh</code>, install <code>sudo apt install ./dist/nordctl_*_all.deb</code>, then launch <strong>nordctl</strong> from Activities. Uninstall: <code>sudo apt remove nordctl</code>.</dd>
+<dt>Ubuntu .deb / app menu?</dt><dd>Download from <a href="https://github.com/G4EA5/nordctl/releases" target="_blank" rel="noopener">GitHub Releases</a> (<code>curl -LO …/nordctl_0.2.0_all.deb</code>, <code>sudo apt install ./nordctl_0.2.0_all.deb</code>), then launch <strong>nordctl</strong> from Activities. Uninstall: <code>sudo apt remove nordctl</code>.</dd>
 <dt>System tray?</dt><dd>Optional: <code>pip install 'nordctl[tray]' && nordctl tray install</code> or say yes during <code>./install.sh</code>.</dd>
 <dt>Why no login in the UI?</dt><dd>Security — use terminal <code>nordvpn login</code>.</dd>
 <dt>Is the UI exposed to the network?</dt><dd>Default is <strong>This computer only</strong> (<code>127.0.0.1</code>). You can enable Home LAN in <strong>Advanced → Services → Network access</strong> so other devices on <code>192.168.x</code> or <code>10.x</code> can connect — only on networks you trust.</dd>

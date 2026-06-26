@@ -63,7 +63,14 @@ API: `GET /api/setup-wizard`, actions `setup_wizard_advance` / `setup_wizard_ski
 
 ## Debian/Ubuntu .deb (app menu)
 
-For users who prefer a package over git clone:
+For users who prefer a package over git clone, download from [GitHub Releases](https://github.com/G4EA5/nordctl/releases):
+
+```bash
+curl -LO https://github.com/G4EA5/nordctl/releases/download/v0.2.0/nordctl_0.2.0_all.deb
+sudo apt install ./nordctl_0.2.0_all.deb
+```
+
+Or build locally after cloning:
 
 ```bash
 bash scripts/build-deb.sh
