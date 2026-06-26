@@ -21,7 +21,7 @@ The audit blocks personal hostnames, environment-specific subnets, custom UI por
 | Placeholder | Update to |
 |-------------|-----------|
 | `yourusername` in README, pyproject.toml, PKGBUILD | `G4EA5` (done) |
-| PyPI project name | Register `nordctl` on PyPI if available |
+| PyPI project name | Register `nordctl` on PyPI — see [PYPI_SETUP.md](PYPI_SETUP.md) |
 | CI badge URL | Matches your repo path |
 
 ## 3. Help & docs sync
@@ -37,7 +37,7 @@ Add `docs/screenshots/` with demo mode (`nordctl demo`) — no real IPs or SSIDs
 
 - Add repository description + topics: `nordvpn`, `linux`, `vpn`, `smart-dns`
 - Enable GitHub Actions
-- Configure PyPI trusted publishing for the release workflow
+- Configure PyPI trusted publishing — [docs/PYPI_SETUP.md](PYPI_SETUP.md) (workflow is manual until done)
 - Add `LICENSE` (done); add `CHANGELOG.md` at first public release
 
 ## 6. Before installer discussion

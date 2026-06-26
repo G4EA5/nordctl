@@ -1,9 +1,11 @@
 name: Publish to PyPI
 
+# Runs manually until PyPI trusted publishing is configured — see docs/PYPI_SETUP.md.
+# After setup, uncomment the release trigger below to publish on each GitHub Release.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
+  # release:
+  #   types: [published]
 
 jobs:
   publish:

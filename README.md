@@ -171,7 +171,7 @@ nordctl install-nordvpn     # optional, separate step
 | **Uninstall .deb** | `sudo apt remove nordctl` |
 | **Uninstall git install** | `bash scripts/uninstall.sh [--purge-config]` |
 
-Releases: `.deb` packages and (when enabled) PyPI wheels at [github.com/G4EA5/nordctl/releases](https://github.com/G4EA5/nordctl/releases).
+Releases: `.deb` packages at [github.com/G4EA5/nordctl/releases](https://github.com/G4EA5/nordctl/releases). PyPI publish is manual until trusted publishing is configured — see [docs/PYPI_SETUP.md](docs/PYPI_SETUP.md).
 
 ---
 
