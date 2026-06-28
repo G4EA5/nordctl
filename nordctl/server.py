@@ -341,6 +341,11 @@ class NordctlHandler(BaseHTTPRequestHandler):
 
             self._json(200, security_hub_payload(load_config()))
             return
+        if path == "/api/listeners":
+            from nordctl.listeners import listening_ports_payload
+
+            self._json(200, listening_ports_payload())
+            return
         if path == "/api/bandwidth":
             from nordctl.bandwidth import sample_bandwidth
 

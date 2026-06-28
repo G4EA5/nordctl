@@ -409,7 +409,7 @@ nordctl wifi heal</pre>
 <li><strong>LAN status page</strong> — read-only URL for phone on same WiFi</li>
 <li><strong>Home Assistant</strong> — REST sensor YAML via <code>/api/ha/state</code></li></ul>
 <h3>Security tools (install panel)</h3>
-<p>Ten apt packages with one-click install when passwordless sudo is configured:</p>
+<p>Ten apt packages with one-click install when passwordless sudo is configured. The <strong>Listeners</strong> tab shows TCP ports open on this computer.</p>
 <table class="help-table"><tr><th>Package</th><th>Used for</th></tr>
 <tr><td>UFW</td><td>Firewall tab</td></tr>
 <tr><td>tcpdump</td><td>Packet capture (lite)</td></tr>

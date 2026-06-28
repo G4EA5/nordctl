@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from nordctl.config import load_config, save_config
-from nordctl.paths import resolve_nordctl_bin
+from nordctl.paths import package_root, resolve_nordctl_bin
 from nordctl.ports import detect_nordctl_listen, is_port_free
 
 UI_UNIT = "nordctl-ui.service"
@@ -185,6 +185,7 @@ def write_ui_unit(cfg: dict[str, Any] | None = None) -> Path:
     bind = str(srv.get("bind") or "127.0.0.1")
     port = int(srv.get("port") or 8765)
     bin_path = _nordctl_bin()
+    workdir = package_root()
     unit = ui_unit_path()
     unit.write_text(
         f"""[Unit]
@@ -194,6 +195,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+WorkingDirectory={workdir}
 ExecStart={bin_path} serve --bind {bind} --port {port}
 Restart=always
 RestartSec=3

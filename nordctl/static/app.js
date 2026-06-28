@@ -69,7 +69,7 @@
   const THEME_KEY = "nordctl_theme";
   const SETUP_DISMISS_KEY = "nordctl_optional_setup_dismiss";
   const DASH_SUBNAV_REV = 9;
-  const HUB_SUBNAV_REV = 4;
+  const HUB_SUBNAV_REV = 6;
   const TOOLS_SUBNAV_REV = 3;
   const DASH_SUBNAV_REV_KEY = "nordctl_dash_subnav_rev";
   const HUB_SUBNAV_REV_KEY = "nordctl_hub_subnav_rev";
@@ -370,6 +370,7 @@
     securitySummary: 15000,
     wifi: 25000,
     ufw: 25000,
+    listeners: 15000,
     host: 8000,
     meshnet: 15000,
   };
@@ -481,6 +482,7 @@
     "leak-tests": { view: "lab", page: "leak", label: "Leak tests", title: "DNS and routing leak tests", group: "security" },
     audit: { view: "lab", page: "overall", label: "Audit", title: "Overall privacy audit", group: "security" },
     "host-ufw": { view: "control", page: null, label: "Linux UFW", title: "Linux UFW firewall editor", group: "security" },
+    listeners: { view: "advanced", page: "listeners", label: "Listeners", title: "TCP listening ports on this computer", group: "security" },
     "security-packages": { view: "advanced", page: "security-packages", label: "Security packages", title: "Firewall, audit, and hardening apt packages", group: "security" },
     "security-shell": { view: "lab", page: "audit", label: "Security shell", title: "Interactive bash for UFW, Lynis, fail2ban, and security apt tools", group: "security", shellScope: "security" },
     privileges: { view: "advanced", page: "privileges", label: "Privileges", title: "Passwordless sudo for UI fixes", group: "security" },
@@ -494,7 +496,7 @@
 
   const HUB_PRIMARY_TABS = {
     networking: { label: "Networking", title: "WiFi, traffic, routes, diagnostics, services, and packages" },
-    security: { label: "Security", title: "Overview, doctors, leak tests, audit, firewall, packages, and privileges" },
+    security: { label: "Security", title: "Overview, doctors, leak tests, audit, firewall, listeners, packages, and privileges" },
   };
 
   const HUB_PRIMARY_DEFAULT_TAB = {
@@ -796,6 +798,7 @@
     "network/doctor": { title: "Health doctor", text: "Moved to Doctors → Health.", help: "troubleshoot" },
     "network/audit": { title: "Privacy audit", text: "Combined leak tests and network checks with plain-English explanations and one-click fixes where safe.", help: "network" },
     "network/host-ufw": { title: "Linux UFW", text: "Add, remove, and review Linux host firewall rules on this computer — not NordVPN firewall and not your router.", help: "control-tab" },
+    "network/listeners": { title: "Listeners", text: "TCP ports listening on this computer — who is bound where, localhost vs LAN.", help: "control-tab" },
     "network/traffic": { title: "Internet traffic", text: "Outbound and inbound internet sessions from this PC — WAN stats, feeds, and connection tables.", help: "traffic" },
     "network/traffic/internet": { title: "Internet traffic", text: "Outbound and inbound internet sessions from this PC — WAN stats, feeds, and connection tables.", help: "traffic" },
     "network/traffic/local": { title: "Local traffic", text: "LAN and Meshnet sessions — connection path, peers, and local listen sockets.", help: "traffic" },
@@ -994,9 +997,15 @@
       { route: "tools/rollback", label: "Install baseline" },
     ],
     "network/host-ufw": [
-      { route: "network/security-packages", label: "Security packages", primary: true },
+      { route: "network/listeners", label: "Listeners", primary: true },
+      { route: "network/security-packages", label: "Security packages" },
       { route: "network/leak-tests", label: "Leak tests" },
       { route: "network/monitoring", label: "Security overview" },
+    ],
+    "network/listeners": [
+      { route: "network/host-ufw", label: "Linux UFW", primary: true },
+      { route: "network/diagnostics/security-shell", label: "Security shell" },
+      { route: "network/security-packages", label: "Security packages" },
     ],
     "network/audit": [
       { route: "network/leak-tests", label: "Leak tests", primary: true },
@@ -1351,6 +1360,11 @@
       "Linux <strong>UFW host firewall</strong> — separate from NordVPN firewall on the Nord Dashboard.",
       "Add allow rules by port, protocol, and optional source IP; use presets for common services.",
       "Enable/disable UFW here — sudo required unless Privileges setup is done.",
+    ],
+    "network/listeners": [
+      "TCP sockets in <strong>LISTEN</strong> state on this computer — from <code>ss -tlnp</code> plus <code>/proc</code> when readable.",
+      "<strong>LAN</strong> means bound on all interfaces (<code>0.0.0.0</code> or <code>::</code>) — review with <strong>Linux UFW</strong> if unexpected.",
+      "Blank process names often need <code>sudo ss -tulpn</code> in Security shell or Privileges setup.",
     ],
     "network/traffic": [
       "Live map of which apps connect where — VPN vs direct vs local, without capture files.",
@@ -2546,6 +2560,7 @@
     { route: "network/network-packages", label: "Networking packages", desc: "Diagnostics and WiFi apt packages — curl, dig, mtr, nmap, …" },
     { route: "network/security-packages", label: "Security packages", desc: "UFW, tcpdump, Lynis, ClamAV, fail2ban, privileges, …" },
     { route: "network/host-ufw", label: "Firewall editor", desc: "Add or remove UFW rules in plain English" },
+    { route: "network/listeners", label: "Listeners", desc: "TCP ports open on this computer" },
     { route: "network/wifi", label: "WiFi hub", desc: "Fix WiFi, DNS drift, and connection issues" },
     { route: "network/diagnostics/shell", label: "Networking shell", desc: "Routes, WiFi, apt networking tools, tcpdump" },
     { route: "network/diagnostics/security-shell", label: "Security shell", desc: "UFW, Lynis, fail2ban, apt security tools, sudo" },
@@ -5963,6 +5978,7 @@
       services: "network/services",
       "network-packages": "network/network-packages",
       "security-packages": "network/security-packages",
+      listeners: "network/listeners",
       privileges: "network/privileges",
       setup: "network/security-packages",
       install: "network/network-packages",
@@ -6304,17 +6320,23 @@
 
   function parseRouteHash() {
     let raw = (location.hash || "").replace(/^#/, "").trim();
-    if (!raw) return { section: "dashboard", tab: null, sub: null };
+    if (!raw) return { section: "dashboard", tab: null, sub: null, routePrefix: null };
     let lower = raw.toLowerCase();
-    if (lower === "help") return { section: "help", tab: null, sub: null };
-    if (lower === "dashboard") return { section: "dashboard", tab: null, sub: null };
-    if (lower === "networking") return { section: "networking", tab: null, sub: null };
-    if (lower === "security") return { section: "security", tab: null, sub: null };
-    if (lower === "network") return { section: "network", tab: null, sub: null };
-    if (lower === "settings") return { section: "settings", tab: null, sub: null };
-    if (lower === "tools") return { section: "tools", tab: null, sub: null };
-    if (lower.startsWith("networking/")) raw = `network/${raw.slice("networking/".length)}`;
-    else if (lower.startsWith("security/")) raw = `network/${raw.slice("security/".length)}`;
+    if (lower === "help") return { section: "help", tab: null, sub: null, routePrefix: null };
+    if (lower === "dashboard") return { section: "dashboard", tab: null, sub: null, routePrefix: null };
+    if (lower === "networking") return { section: "networking", tab: null, sub: null, routePrefix: "networking" };
+    if (lower === "security") return { section: "security", tab: null, sub: null, routePrefix: "security" };
+    if (lower === "network") return { section: "network", tab: null, sub: null, routePrefix: null };
+    if (lower === "settings") return { section: "settings", tab: null, sub: null, routePrefix: null };
+    if (lower === "tools") return { section: "tools", tab: null, sub: null, routePrefix: null };
+    let routePrefix = null;
+    if (lower.startsWith("networking/")) {
+      routePrefix = "networking";
+      raw = `network/${raw.slice("networking/".length)}`;
+    } else if (lower.startsWith("security/")) {
+      routePrefix = "security";
+      raw = `network/${raw.slice("security/".length)}`;
+    }
     lower = raw.toLowerCase();
     if (!raw.includes("/")) {
       const mapped = LEGACY_ROUTE_HASH[lower];
@@ -6348,7 +6370,7 @@
     }
     /* Whole hub tab ids with dashes (network-packages) must win over tab-sub splits (network + packages). */
     if (section === "network" && parts.length === 2 && HUB_TABS[parts[1]]) {
-      return { section: "network", tab: parts[1], sub: null };
+      return { section: "network", tab: parts[1], sub: null, routePrefix };
     }
     /* Compound hub routes: #network/diagnostics-traceroute → tab + tool sub-route (not dashboard tabs like split-tunnel). */
     if (parts.length === 2 && parts[1].includes("-") && section !== "dashboard") {
@@ -6567,6 +6589,7 @@
       if (tab === "leak-tests") return `#${p}/leak-tests`;
       if (tab === "network-packages") return `#${p}/network-packages`;
       if (tab === "security-packages") return `#${p}/security-packages`;
+      if (tab === "listeners") return `#${p}/listeners`;
       if (tab === "privileges") return `#${p}/privileges`;
       if (tab === "map-internet") return `#${p}/map-internet`;
       if (tab === "map-local") return `#${p}/map-local`;
@@ -6759,6 +6782,22 @@
     syncRouteHash(section, tab, fromHash ? true : !!replaceHash, sub);
   }
 
+  function hashRoutePrefixHint() {
+    const raw = (location.hash || "").replace(/^#/, "").trim().toLowerCase();
+    if (raw === "security" || raw.startsWith("security/")) return "security";
+    if (raw === "networking" || raw.startsWith("networking/")) return "networking";
+    return null;
+  }
+
+  function applyHubRoutePrefix(route) {
+    const prefix = route?.routePrefix || hashRoutePrefixHint();
+    if (!prefix || !HUB_PRIMARY_TABS[prefix]) return;
+    hubPrimaryTab = prefix;
+    localStorage.setItem(HUB_PRIMARY_KEY, hubPrimaryTab);
+    syncHubPrimaryHighlight(hubPrimaryTab);
+    syncHubTabsVisibility();
+  }
+
   function applyRoute(fromHash, replaceHash) {
     let route = parseRouteHash();
     const scrollLanAfterLoad = fromHash && (location.hash || "").replace(/^#/, "").trim().toLowerCase() === "dashboard/home-lan";
@@ -6826,6 +6865,7 @@
       };
     }
     if (route.section === "network") {
+      applyHubRoutePrefix(route);
       if (route.tab === "networking" || route.tab === "security") {
         const group = route.tab;
         hubPrimaryTab = group;
@@ -7208,7 +7248,7 @@
       switchPageTabs("lab", "leak", { skipHash: true });
       syncLeakLabPane("leak");
     }
-    if (tabId === "network-packages" || tabId === "security-packages" || tabId === "privileges") {
+    if (tabId === "network-packages" || tabId === "security-packages" || tabId === "listeners" || tabId === "privileges") {
       switchPageTabs("advanced", HUB_TABS[tabId].page, { skipHash: true });
     }
     if (tabId === "diagnostics") {
@@ -7532,6 +7572,8 @@
     if (viewName === "advanced") {
       if (active === "network-packages" || active === "security-packages") {
         void loadHubTools(active === "security-packages" ? "security" : "network", false);
+      } else if (active === "listeners") {
+        void loadListeners(false);
       }
     }
     if (viewName === "dashboard" && active === "workflows") {
@@ -12038,6 +12080,60 @@
     if (!p) return "";
     if (/^sudo\s+bash\s+/i.test(p)) return p;
     return `sudo bash ${p}`;
+  }
+
+  function renderListeners(data) {
+    const err = $("listenersErr");
+    const body = $("listenersBody");
+    const badge = $("listenersBadge");
+    const hint = $("listenersHint");
+    if (!body) return;
+    if (!data?.ok) {
+      err?.classList.remove("hidden");
+      if (err) err.textContent = data?.error || "Could not read listeners";
+      if (badge) { badge.textContent = "—"; badge.className = "badge off"; }
+      body.innerHTML = `<tr class="empty-row"><td colspan="4">Could not read listeners</td></tr>`;
+      return;
+    }
+    err?.classList.add("hidden");
+    const sum = data.summary || {};
+    const set = (id, text) => { const el = $(id); if (el) el.textContent = text; };
+    set("listenersMetricTotal", String(sum.total ?? 0));
+    set("listenersMetricNamed", String(sum.named ?? 0));
+    set("listenersMetricLan", String(sum.lan_exposed ?? 0));
+    if (badge) {
+      badge.textContent = `${sum.total ?? 0} open`;
+      badge.className = "badge " + ((sum.lan_exposed ?? 0) > 0 ? "warn" : "on");
+    }
+    if (hint) hint.innerHTML = data.hint || data.message || "";
+    const rows = data.listeners || [];
+    if (!rows.length) {
+      body.innerHTML = `<tr class="empty-row"><td colspan="4">No TCP listeners found</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map((row) => {
+      const scope = row.scope === "localhost"
+        ? '<span class="badge ok">localhost</span>'
+        : '<span class="badge warn">LAN</span>';
+      const proc = row.process
+        ? `<span class="proc">${esc(row.process)}</span>`
+        : '<span class="muted">—</span>';
+      return `<tr><td>${esc(row.proto || "tcp")}</td><td class="host">${esc(row.addr || "")}</td><td>${scope}</td><td>${proc}</td></tr>`;
+    }).join("");
+  }
+
+  async function loadListeners(force) {
+    try {
+      const data = await apiCached("/api/listeners", {}, force ? 0 : CACHE_TTL.listeners);
+      renderListeners(data);
+      if (force) {
+        logActivity("listeners", `Listeners — ${data.summary?.total ?? 0} TCP sockets`, data.ok, data.error || "");
+      }
+      return data;
+    } catch (e) {
+      renderListeners({ ok: false, error: String(e) });
+      return null;
+    }
   }
 
   function renderPrivileges(priv) {
@@ -17249,6 +17345,7 @@
     }
     if (lastState?.services) renderServicePanel(lastState.services);
     else api("/api/service").then((s) => renderServicePanel(s));
+    if (advPage === "listeners" || hubTab === "listeners") await loadListeners(!!force);
     if (advPage === "privileges" || hubTab === "privileges" || force) await loadPrivileges(true);
     else if (lastState?.privileges) renderPrivileges(lastState.privileges);
     if (packageHubPageActive("network-packages")) loadHubTools("network", !!force);
@@ -20136,6 +20233,16 @@
   $("btnUfwDisable")?.addEventListener("click", () => ufwAction({ action: "disable" }, "UFW disabled"));
   $("btnUfwReload")?.addEventListener("click", () => ufwAction({ action: "reload" }, "UFW reloaded"));
   $("btnUfwRefresh")?.addEventListener("click", () => loadUfw(true));
+  $("btnListenersRefresh")?.addEventListener("click", async () => {
+    const btn = $("btnListenersRefresh");
+    if (btn) btn.disabled = true;
+    try {
+      await loadListeners(true);
+      toast("Listeners refreshed", true);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
   $("btnPrivRefresh")?.addEventListener("click", async () => {
     const btn = $("btnPrivRefresh");
     if (btn) btn.disabled = true;

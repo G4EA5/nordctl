@@ -41,7 +41,11 @@ def is_readable_file(path: Path) -> bool:
 
 
 def resolve_nordctl_bin() -> str:
-    """Return absolute path to nordctl — never a bare name systemd cannot execute."""
+    """Return absolute path to nordctl — prefer ~/.local/bin over /usr/bin."""
+    home_bin = Path.home() / ".local" / "bin" / "nordctl"
+    if home_bin.is_file():
+        return str(home_bin)
+
     found = shutil.which("nordctl")
     if found:
         return found

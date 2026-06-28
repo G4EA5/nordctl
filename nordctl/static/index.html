@@ -2180,6 +2180,35 @@
                 <div id="networkAccessBox"></div>
               </div>
             </section>
+            <section class="panel glass page-tab-panel page-premium" data-page-tab-panel="listeners" id="listenersPanel">
+              <header class="page-hero">
+                <div class="page-hero-main">
+                  <div class="page-hero-title">
+                    <h2>Listeners</h2>
+                    <span class="badge" id="listenersBadge">—</span>
+                  </div>
+                  <p class="help-text">TCP ports listening on this computer — process names from <code>ss</code> and <code>/proc</code> when your user can read them.</p>
+                </div>
+                <button type="button" class="btn sm" id="btnListenersRefresh" data-no-confirm="1" title="Refresh listener list">Refresh</button>
+              </header>
+              <div class="page-metrics">
+                <div class="page-metric page-metric-a"><div class="lbl">Total</div><div class="val" id="listenersMetricTotal">—</div><div class="sub">sockets</div></div>
+                <div class="page-metric page-metric-b"><div class="lbl">Named</div><div class="val" id="listenersMetricNamed">—</div><div class="sub">with process</div></div>
+                <div class="page-metric page-metric-c"><div class="lbl">LAN</div><div class="val" id="listenersMetricLan">—</div><div class="sub">not localhost-only</div></div>
+              </div>
+              <div class="panel-nav-actions inline-jump-actions" style="margin:0 0 0.65rem">
+                <button type="button" class="btn sm jump-link" data-view-jump="network/host-ufw">Linux UFW</button>
+                <button type="button" class="btn sm jump-link" data-view-jump="network/diagnostics/security-shell">Security shell</button>
+              </div>
+              <p class="help-text hidden" id="listenersErr"></p>
+              <p class="help-text muted-inline" id="listenersHint"></p>
+              <div class="traffic-map-scroll">
+                <table class="traffic-map-table" id="listenersTable">
+                  <thead><tr><th>Proto</th><th>Address</th><th>Scope</th><th>Process</th></tr></thead>
+                  <tbody id="listenersBody"></tbody>
+                </table>
+              </div>
+            </section>
             <section class="panel glass page-tab-panel" data-page-tab-panel="security-packages" id="securityPackagesPanel">
               <div class="hero-card-head">
                 <h2>Security packages</h2>
@@ -2192,6 +2221,7 @@
                 <button type="button" class="btn sm primary jump-link" data-view-jump="tools/custom-packages">Custom packages</button>
                 <button type="button" class="btn sm jump-link" data-view-jump="network/diagnostics/security-shell">Security shell</button>
                 <button type="button" class="btn sm jump-link" data-view-jump="network/host-ufw">Linux UFW</button>
+                <button type="button" class="btn sm jump-link" data-view-jump="network/listeners">Listeners</button>
                 <button type="button" class="btn sm jump-link" data-view-jump="network/privileges">Privileges</button>
                 <button type="button" class="btn sm jump-link" data-view-jump="dashboard/terminal">Nord shell</button>
               </div>
